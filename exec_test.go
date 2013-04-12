@@ -24,7 +24,7 @@ func testExecReal(t *testing.T, s string, tgt float64) {
 	}
 	if math.Abs(v.dval - tgt) > 0.0001 {
 		fmt.Printf("Program:\n%s\n", s)
-		t.Fatalf("Output value mismatch %v (expected: %g)\n", v, tgt)
+		t.Fatalf("Output value mismatch %v (expected: %d)\n", v, tgt)
 	}
 }
 
@@ -179,3 +179,40 @@ func TestBuiltin(t *testing.T) {
 	testExecReal(t, "ln(4.3)", math.Log(4.3))
 }
 
+func TestAckermann(t *testing.T) {
+	ackermann := `
+		func af(m, n) {
+			if (m == 0) {
+				n+1;
+			} else if ((m > 0) && (n == 0)) {
+				af(m-1, 1);
+			} else {
+				af(m-1, af(m, n-1));
+			}
+		}
+	`
+
+	testExecInt(t, ackermann + "af(0, 0)", 1)
+	testExecInt(t, ackermann + "af(0, 1)", 2)
+	testExecInt(t, ackermann + "af(0, 2)", 3)
+	testExecInt(t, ackermann + "af(0, 3)", 4)
+	testExecInt(t, ackermann + "af(0, 4)", 5)
+
+	testExecInt(t, ackermann + "af(1, 0)", 2)
+	testExecInt(t, ackermann + "af(1, 1)", 3)
+	testExecInt(t, ackermann + "af(1, 2)", 4)
+	testExecInt(t, ackermann + "af(1, 3)", 5)
+	testExecInt(t, ackermann + "af(1, 4)", 6)
+
+	testExecInt(t, ackermann + "af(2, 0)", 3)
+	testExecInt(t, ackermann + "af(2, 1)", 5)
+	testExecInt(t, ackermann + "af(2, 2)", 7)
+	testExecInt(t, ackermann + "af(2, 3)", 9)
+	testExecInt(t, ackermann + "af(2, 4)", 11)
+
+	testExecInt(t, ackermann + "af(3, 0)", 5)
+	testExecInt(t, ackermann + "af(3, 1)", 13)
+	testExecInt(t, ackermann + "af(3, 2)", 29)
+	testExecInt(t, ackermann + "af(3, 3)", 61)
+	testExecInt(t, ackermann + "af(3, 4)", 125)
+}
