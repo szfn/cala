@@ -1,0 +1,48 @@
+Cala is a "bc" like calculator language implemented in go. There is no particular reason why one would actually reimplement something like this. I just did it for fun.
+
+OPERATORS
+	+ - * /		the usual operators
+	++ --		variable increment and decrement
+	**		exponentiation
+	%		reminder/modulo
+	<op>=		like C
+	<= >= < > = !=	comparison operators, like C
+	! & && | ||	boolean and bitwise operators, work like C, arguments must be integer or an error will be reported
+	=		assignment
+
+FUNCTION DEFINITION SYNTAX
+	func name(a1, a2, a3…) {
+		body…
+	}
+
+STATEMENTS
+	if (boolean expression) {
+		…code…
+	} else {
+		…code…
+	}
+
+	The else block is optional, braces are mandatory
+
+	while (boolean expression) {
+		…body…
+	}
+
+	for expr1; boolean expression; expr2 {
+		…body…
+	}
+
+	both work like in C, in both cases braces are mandatory
+
+INTERACTIVE USE
+	whenever a toplevel expression is evaluated its value is printed
+
+BUILTIN FUNCTIONS
+	abs, acos, asin, atan, cos, cosh, floor, ceil, ln, log10, log2, sin, sinh, sqrt, tan, tanh, dpy
+	the only function requiring an explanation is dpy that will print the binary representation of its argument
+
+REFERENCES
+
+bc(1) man page
+``Lexical Scanning in Go'' http://www.youtube.com/watch?v=HxaD_trXwRE
+
