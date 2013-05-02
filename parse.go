@@ -313,8 +313,8 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 	/* leaves */
 	case REALTOK: return parseReal(tok.val, tok.lineno)
 	case INTTOK: return parseInt(tok.val, 10, tok.lineno)
-	case HEXTOK: return parseInt(tok.val, 16, tok.lineno)
-	case OCTTOK: return parseInt(tok.val, 8, tok.lineno)
+	case HEXTOK: return parseInt(tok.val[2:], 16, tok.lineno)
+	case OCTTOK: return parseInt(tok.val[1:], 8, tok.lineno)
 
 	/* variables, function calls, postfix operators */
 	case SYMTOK:

@@ -47,6 +47,12 @@ func TestParseExpr(t *testing.T) {
 		"BodyNode<[BinOpNode<+, ConstNode<0, 1, 0>, BinOpNode<-, BinOpNode<*, ConstNode<0, 2, 0>, ConstNode<0, 3, 0>>, ConstNode<0, 2, 0>>>]>")
 }
 
+func TestParseNumber(t *testing.T) {
+	matchAst(t, "15", "BodyNode<[ConstNode<0, 15, 0>]>")
+	matchAst(t, "0xf", "BodyNode<[ConstNode<0, 15, 0>]>")
+	matchAst(t, "017", "BodyNode<[ConstNode<0, 15, 0>]>")
+}
+
 func TestParseStatement(t *testing.T) {
 	matchAst(t,
 		"while(a > 0) { 2 + 2; a--; }",
