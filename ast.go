@@ -56,11 +56,8 @@ type UniOpNode struct {
 }
 
 func NewUniOpNode(tok token, child AstNode) *UniOpNode {
-	fn, ok := op1FnTable[tok.ttype]
-	if !ok {
-		panic(fmt.Errorf("Unknown operator: %s", tok.ttype.String()))
-	}
-	return &UniOpNode{ tok.ttype.String(), fn, child, tok.lineno }
+	fn := tok.ttype.UniFn
+	return &UniOpNode{ tok.ttype.Name, fn, child, tok.lineno }
 }
 
 func (n *UniOpNode) String() string {
@@ -137,11 +134,8 @@ type BinOpNode struct {
 }
 
 func NewBinOpNode(tok token, op1, op2 AstNode) *BinOpNode {
-	fn, ok := op2FnTable[tok.ttype]
-	if !ok {
-		panic(fmt.Errorf("Unknown binary operation: %s", tok.ttype))
-	}
-	return &BinOpNode{ tok.ttype.String(), fn, op1, op2, tok.lineno }
+	fn := tok.ttype.BinFn
+	return &BinOpNode{ tok.ttype.Name, fn, op1, op2, tok.lineno }
 }
 
 func (n *BinOpNode) String() string {
@@ -160,9 +154,8 @@ type SetOpNode struct {
 	lineno int
 }
 
-func NewSetOpNode(tok token, opType tokenType, varName string, op1 AstNode) *SetOpNode {
-	fnOp := op2FnTable[opType]
-	return &SetOpNode{ tok.val, fnOp, varName, op1, tok.lineno }
+func NewSetOpNode(tok token, varName string, op1 AstNode) *SetOpNode {
+	return &SetOpNode{ tok.val, tok.ttype.BinFn, varName, op1, tok.lineno }
 }
 
 func (n *SetOpNode) String() string {

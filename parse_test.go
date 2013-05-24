@@ -90,3 +90,11 @@ func TestParseOk3(t *testing.T) {
 		"2**(1/2)",
 		"BodyNode<[BinOpNode<**, ConstNode<0, 2, 0>, BinOpNode</, ConstNode<0, 1, 0>, ConstNode<0, 2, 0>>>]>")
 }
+
+func TestParseError(t *testing.T) {
+	pgm := "2 + * 3"
+	_, err := parse(lex(strings.NewReader(pgm)))
+	if (err == nil) || (err.Error() != "Syntax error: unexpected token '*' in line 1  (while parsing basic expression)") {
+		t.Fatalf("Wrong or no error returned: %v\n", err)
+	}
+}

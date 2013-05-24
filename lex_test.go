@@ -145,3 +145,16 @@ func TestLexerOk4(t *testing.T) {
 	tokEqual(t, tokens, expected)
 }
 
+func TestLexerOk5(t *testing.T) {
+	s := "!x++"
+
+	expected := []token{
+		{ NEGOPTOK, "!",  1 },
+		{ SYMTOK, "x", 1 },
+		{ INCOPTOK, "++", 1 },
+		{ EOFTOK, "", 1 },
+	}
+
+	tokens := lexAll(strings.NewReader(s))
+	tokEqual(t, tokens, expected)
+}

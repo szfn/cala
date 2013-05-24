@@ -253,35 +253,17 @@ func parseExpression(ts *tokenStream) AstNode {
 	tok1 := ts.get()
 	if tok1.ttype != SYMTOK {
 		ts.rewind(tok1)
-		return parseExpressionEx(ts, opPriority)
+		return parseExpressionEx(ts, OpPriority)
 	}
 
 	tok2 := ts.get() // fun fact: this the thing that makes this grammar LL(2) instead of LL(1)
-	switch tok2.ttype {
-	case SETOPTOK:
-		return NewSetOpNode(tok2, ERRTOK, tok1.val, parseExpressionEx(ts, opPriority))
-	case ADDEQTOK:
-		return NewSetOpNode(tok2, ADDOPTOK, tok1.val, parseExpressionEx(ts, opPriority))
-	case SUBEQTOK:
-		return NewSetOpNode(tok2, SUBOPTOK, tok1.val, parseExpressionEx(ts, opPriority))
-	case MULEQTOK:
-		return NewSetOpNode(tok2, MULOPTOK, tok1.val, parseExpressionEx(ts, opPriority))
-	case DIVEQTOK:
-		return NewSetOpNode(tok2, DIVOPTOK, tok1.val, parseExpressionEx(ts, opPriority))
-	case MODEQTOK:
-		return NewSetOpNode(tok2, MODOPTOK, tok1.val, parseExpressionEx(ts, opPriority))
+	if tok2.ttype.IsSetOperator {
+		return NewSetOpNode(tok2, tok1.val, parseExpressionEx(ts, OpPriority))
 	}
 
 	ts.rewind(tok2)
 	ts.rewind(tok1)
-	return parseExpressionEx(ts, opPriority)
-}
-
-var opPriority = [][]tokenType{
-	/* comparison */ []tokenType{ EQOPTOK, GEOPTOK, GTOPTOK, LEOPTOK, LTOPTOK, NEOPTOK },
-	/* boolean */ []tokenType{ OROPTOK, BWOROPTOK, ANDOPTOK, BWANDOPTOK },
-	/* addition */ []tokenType{ ADDOPTOK, SUBOPTOK },
-	/* multiplication */ []tokenType{ MULOPTOK, DIVOPTOK, MODOPTOK, POWOPTOK },
+	return parseExpressionEx(ts, OpPriority)
 }
 
 func parseExpressionEx(ts *tokenStream, p [][]tokenType) AstNode {

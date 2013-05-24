@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"io"
 )
 
@@ -244,114 +243,6 @@ func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	vv := &value{ PVAL, 0, 0, n, nil }
 	frame.vars[n.name] = vv
 	return vv
-}
-
-// Defines operators
-var op2FnTable = map[tokenType]func(*value, *value, int) *value {
-	ADDOPTOK: func(a1, a2 *value, lineno int) *value {
-		if (a1.kind == IVAL) && (a2.kind == IVAL) {
-			return &value{IVAL, a1.Int(lineno) + a2.Int(lineno), 0, nil, nil}
-		}
-		return &value{DVAL, 0, a1.Real(lineno) + a2.Real(lineno), nil, nil}
-	},
-
-	SUBOPTOK: func(a1, a2 *value, lineno int) *value {
-		if (a1.kind == IVAL) && (a2.kind == IVAL) {
-			return &value{IVAL, a1.Int(lineno) - a2.Int(lineno), 0, nil, nil}
-		}
-		return &value{DVAL, 0, a1.Real(lineno) - a2.Real(lineno), nil, nil}
-	},
-	MULOPTOK: func(a1, a2 *value, lineno int) *value {
-		if (a1.kind == IVAL) && (a2.kind == IVAL) {
-			return &value{IVAL, a1.Int(lineno) * a2.Int(lineno), 0, nil, nil}
-		}
-		return &value{DVAL, 0, a1.Real(lineno) * a2.Real(lineno), nil, nil}
-	},
-	DIVOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{DVAL, 0, a1.Real(lineno) / a2.Real(lineno), nil, nil}
-	},
-	MODOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, a1.Int(lineno) % a2.Int(lineno), 0, nil, nil}
-	},
-	POWOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{DVAL, 0, math.Pow(a1.Real(lineno), a2.Real(lineno)), nil, nil}
-	},
-	OROPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Bool(lineno) || a2.Bool(lineno)), 0, nil, nil}
-	},
-	BWOROPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, a1.Int(lineno) | a2.Int(lineno), 0, nil, nil}
-	},
-	ANDOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Bool(lineno) && a2.Bool(lineno)), 0, nil, nil}
-	},
-	BWANDOPTOK: func(a1, a2 *value, lineno int) *value{
-		return &value{IVAL, a1.Int(lineno) & a2.Int(lineno), 0, nil, nil}
-	},
-	EQOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) == a2.Real(lineno)), 0, nil, nil}
-	},
-	GEOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) >= a2.Real(lineno)), 0, nil, nil}
-	},
-	GTOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) > a2.Real(lineno)), 0, nil, nil}
-	},
-	LEOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) <= a2.Real(lineno)), 0, nil, nil}
-	},
-	LTOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) < a2.Real(lineno)), 0, nil, nil}
-	},
-	NEOPTOK: func(a1, a2 *value, lineno int) *value {
-		return &value{IVAL, asInt(a1.Real(lineno) != a2.Real(lineno)), 0, nil, nil}
-	},
-}
-
-var op1FnTable = map[tokenType]func(*value, int) *value {
-	INCOPTOK: func(a1 *value, lineno int) *value {
-		switch a1.kind {
-		case IVAL:
-			a1.ival++
-		case DVAL:
-			a1.dval++
-		default:
-			panic(fmt.Errorf("Can not increment function variable at line %d", lineno))
-		}
-		vv := *a1
-		return &vv
-	},
-	DECOPTOK: func(a1 *value, lineno int) *value {
-		switch a1.kind {
-		case IVAL:
-			a1.ival--
-		case DVAL:
-			a1.dval--
-		default:
-			panic(fmt.Errorf("Can not decrement function variable at line %d", lineno))
-		}
-		vv := *a1
-		return &vv
-	},
-	NEGOPTOK: func(a1 *value, lineno int) *value {
-		if a1.kind != IVAL {
-			panic(fmt.Errorf("Can not negate non-integer value at line %d", lineno))
-		}
-		return &value{ IVAL, asInt(!(a1.ival != 0)), 0, nil, nil }
-	},
-	ADDOPTOK: func(a1 *value, lineno int) *value {
-		vv := *a1
-		return &vv
-	},
-	SUBOPTOK: func(a1 *value, lineno int) *value {
-		switch a1.kind {
-		case IVAL:
-			return &value{ IVAL, -a1.ival, 0, nil, nil }
-		case DVAL:
-			return &value{ DVAL, 0, -a1.dval, nil, nil }
-		}
-		panic(fmt.Errorf("Can not apply operator to non-numer value at line %d", lineno))
-	},
 }
 
 func asInt(x bool) int64 {

@@ -7,107 +7,11 @@ import (
 	"unicode"
 )
 
-type tokenType int
-const (
-	ERRTOK tokenType = iota // an error occoured
-	EOFTOK // end of file
 
-	REALTOK  // a real number
-	INTTOK // an integer number
-	HEXTOK // a hexadecimal number
-	OCTTOK // an octal number
-	KWDTOK // any builtin keyword
-	SYMTOK // any symbol
-
-	PAROPTOK // (
-	PARCLTOK // )
-	CRLOPTOK // {
-	CRLCLTOK // }
-
-	ADDOPTOK // +
-	SUBOPTOK // -
-	MULOPTOK // *
-	DIVOPTOK // /
-	MODOPTOK // %
-	POWOPTOK // **
-	OROPTOK // ||
-	BWOROPTOK // |
-	ANDOPTOK // &&
-	BWANDOPTOK // &
-	SETOPTOK // =
-
-	INCOPTOK // ++
-	DECOPTOK // --
-
-	NEGOPTOK // !
-
-	ADDEQTOK // +=
-	SUBEQTOK // -=
-	MULEQTOK // *=
-	DIVEQTOK // /=
-	MODEQTOK // %=
-
-	EQOPTOK // ==
-	GEOPTOK // >=
-	GTOPTOK // >
-	LEOPTOK // <=
-	LTOPTOK // <
-	NEOPTOK // !=
-
-	COMMATOK // ,
-	SCOLTOK // ;
-)
 
 type followCont struct {
 	r rune
 	ttype tokenType
-}
-
-var opTable = map[rune][]followCont{
-	'+': []followCont{
-		{ '+', INCOPTOK },
-		{ '=', ADDEQTOK },
-		{ 0, ADDOPTOK }},
-	'-': []followCont{
-		{ '-', DECOPTOK },
-		{ '=', SUBEQTOK },
-		{ 0, SUBOPTOK }},
-	'*': []followCont{
-		{ '*', POWOPTOK },
-		{ '=', MULEQTOK },
-		{ 0, MULOPTOK }},
-	'/': []followCont{
-		{ '=', DIVEQTOK },
-		{ 0, DIVOPTOK }},
-	'%': []followCont{
-		{ '=', MODEQTOK },
-		{ 0, MODOPTOK }},
-	'>': []followCont{
-		{ '=', GEOPTOK },
-		{ 0, GTOPTOK }},
-	'<': []followCont{
-		{ '=', LEOPTOK },
-		{ 0, LTOPTOK }},
-	'!': []followCont{
-		{ '=', NEOPTOK },
-		{ 0, NEGOPTOK }},
-	'|': []followCont{
-		{ '|', OROPTOK },
-		{ 0, BWOROPTOK }},
-	'&': []followCont{
-		{ '&', ANDOPTOK },
-		{ 0, BWANDOPTOK }},
-	'=': []followCont{
-		{ '=', EQOPTOK },
-		{ 0, SETOPTOK }},
-}
-
-var kwdTable = map[string]bool{
-	"if": true,
-	"else": true,
-	"while": true,
-	"for": true,
-	"func": true,
 }
 
 type token struct {
@@ -157,8 +61,6 @@ func (lx *lexer) syntaxError(c rune) {
 	lx.emit(ERRTOK, fmt.Sprintf("Syntax error: unexpected character '%c' in line %d", c, lx.lineno))
 }
 
-
-
 // Reads an operator, remember that operators are at most two characters long. The first character of the operator must have already been read and stored in the accumulator
 func lxFollow(lx *lexer) lexerStateFn {
 	c, _, err := lx.input.ReadRune()
@@ -166,24 +68,26 @@ func lxFollow(lx *lexer) lexerStateFn {
 		return nil
 	}
 
-	continuations, ok := opTable[lx.acc[0]]
+	ttype, ok := TokenTypes[string(lx.acc)]
 	if !ok {
 		panic(fmt.Errorf("Internal error: got inside lxFollow with an invalid accumulator: %v", lx.acc))
 	}
 
-	for _, cont := range continuations {
-		if cont.r == c {
+	n := string(lx.acc[0]) + string(c)
+
+	//println("Lexed", string(lx.acc[0]), "looking if", n, "is in its continuations")
+
+	for _, cont := range ttype.LexFollow {
+		//println("\tpossible continuation:", cont.XName)
+		if cont.XName == n {
 			lx.acc = append(lx.acc, c)
-			lx.emit(cont.ttype, string(lx.acc))
+			lx.emit(cont, string(lx.acc))
 			return lxBase
-		} else if cont.r == 0 {
-			lx.emit(cont.ttype, string(lx.acc))
-			return toBase1(lx, c, true)
 		}
 	}
 
-	lx.syntaxError(c)
-	return nil
+	lx.emit(ttype, string(lx.acc))
+	return toBase1(lx, c, true)
 }
 
 // Reads a comment
@@ -214,7 +118,7 @@ func lxSymbol(lx *lexer) lexerStateFn {
 		} else {
 			symbol := string(lx.acc)
 			ttype := SYMTOK
-			if _, ok := kwdTable[symbol]; ok {
+			if _, ok := KwdTable[symbol]; ok {
 				ttype = KWDTOK
 			}
 			lx.emit(ttype, symbol)
@@ -423,16 +327,15 @@ func lxBase1(lx *lexer) lexerStateFn {
 			return nil
 		}
 
-	case '(': lx.emit(PAROPTOK, "(")
-	case ')': lx.emit(PARCLTOK, ")")
-	case '{': lx.emit(CRLOPTOK, "{")
-	case '}': lx.emit(CRLCLTOK, "}")
-	case ',': lx.emit(COMMATOK, ",")
-	case ';': lx.emit(SCOLTOK, ";")
-
 	default:
-		if _, ok := opTable[c]; ok {
-			return toState(lx, c, lxFollow)
+		if ttype, ok := TokenTypes[string(c)]; ok {
+			//println("Lexed", ttype.Name, "with LexFollow", ttype.LexFollow)
+			if ttype.LexFollow != nil {
+				return toState(lx, c, lxFollow)
+			} else {
+				lx.emit(ttype, string(c))
+				return lxBase
+			}
 		}
 
 		if (c == '_') || unicode.IsLetter(c) {
@@ -492,50 +395,3 @@ func lexAll(input io.Reader) []token {
 	}
 	return r
 }
-
-var tokenTypeName = map[tokenType]string{
-	ERRTOK: "an error occoured",
-	EOFTOK: "end of file",
-	REALTOK: "a real number",
-	INTTOK: "an integer number",
-	HEXTOK: "a hexadecimal number",
-	OCTTOK: "an octal number",
-	KWDTOK: "any builtin keyword",
-	SYMTOK: "any symbol",
-	PAROPTOK: "(",
-	PARCLTOK: ")",
-	CRLOPTOK: "{",
-	CRLCLTOK: "}",
-	ADDOPTOK: "+",
-	SUBOPTOK: "-",
-	MULOPTOK: "*",
-	DIVOPTOK: "/",
-	MODOPTOK: "%",
-	POWOPTOK: "**",
-	OROPTOK: "||",
-	BWOROPTOK: "|",
-	ANDOPTOK: "&&",
-	BWANDOPTOK: "&",
-	SETOPTOK: "=",
-	INCOPTOK: "++",
-	DECOPTOK: "--",
-	NEGOPTOK: "!",
-	ADDEQTOK: "+=",
-	SUBEQTOK: "-=",
-	MULEQTOK: "*=",
-	DIVEQTOK: "/=",
-	MODEQTOK: "%=",
-	EQOPTOK: "==",
-	GEOPTOK: "ge",
-	GTOPTOK: "gt",
-	LEOPTOK: "le",
-	LTOPTOK: "lt",
-	NEOPTOK: "!=",
-	COMMATOK: ",",
-	SCOLTOK: ";",
-}
-
-func (ttype tokenType) String() string {
-	return tokenTypeName[ttype]
-}
-
