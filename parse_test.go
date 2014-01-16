@@ -98,3 +98,9 @@ func TestParseError(t *testing.T) {
 		t.Fatalf("Wrong or no error returned: %v\n", err)
 	}
 }
+
+func TestParseMulDiv(t *testing.T) {
+	matchAst(t,
+		"11/25 * 2",
+		"BodyNode<[BinOpNode<*, BinOpNode</, ConstNode<0, 11, 0>, ConstNode<0, 25, 0>>, ConstNode<0, 2, 0>>]>")
+}

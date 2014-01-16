@@ -151,15 +151,15 @@ var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, lineno int) *value {
 	return &value{DVAL, 0, a1.Real(lineno) * a2.Real(lineno), nil, nil}
 })
 
-var DIVOPTOK = TOp2("/", 3, func(a1, a2 *value, lineno int) *value {
+var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, lineno int) *value {
 	return &value{DVAL, 0, a1.Real(lineno) / a2.Real(lineno), nil, nil}
 })
 
-var MODOPTOK = TOp2("%", 3, func(a1, a2 *value, lineno int) *value {
+var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, lineno int) *value {
 	return &value{IVAL, a1.Int(lineno) % a2.Int(lineno), 0, nil, nil}
 })
 
-var POWOPTOK = TOp2("**", 3, func(a1, a2 *value, lineno int) *value {
+var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, lineno int) *value {
 	return &value{DVAL, 0, math.Pow(a1.Real(lineno), a2.Real(lineno)), nil, nil}
 })
 
