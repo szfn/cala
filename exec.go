@@ -10,7 +10,7 @@ type CallFrame struct {
 }
 
 type ExecError struct {
-	msg string
+	msg        string
 	stackTrace []string
 }
 
@@ -51,24 +51,24 @@ func exec(program AstNode) (v *value, err error) {
 func NewCallStack() []CallFrame {
 	return []CallFrame{
 		{
-			vars: map[string]*value {
-				"abs": btnAbs,
-				"acos": btnAcos,
-				"asin": btnAsin,
-				"atan": btnAtan,
-				"cos": btnCos,
-				"cosh": btnCosh,
+			vars: map[string]*value{
+				"abs":   btnAbs,
+				"acos":  btnAcos,
+				"asin":  btnAsin,
+				"atan":  btnAtan,
+				"cos":   btnCos,
+				"cosh":  btnCosh,
 				"floor": btnFloor,
-				"ceil": btnCeil,
-				"ln": btnLn,
+				"ceil":  btnCeil,
+				"ln":    btnLn,
 				"log10": btnLog10,
-				"log2": btnLog2,
-				"sin": btnSin,
-				"sinh": btnSinh,
-				"sqrt": btnSqrt,
-				"tan": btnTan,
-				"tanh": btnTanh,
-				"dpy": btnDpy,
+				"log2":  btnLog2,
+				"sin":   btnSin,
+				"sinh":  btnSinh,
+				"sqrt":  btnSqrt,
+				"tan":   btnTan,
+				"tanh":  btnTanh,
+				"dpy":   btnDpy,
 			},
 		},
 	}
@@ -168,7 +168,6 @@ func functionCall(n *FnCallNode, fn *FnDefNode, argv []*value, stack []CallFrame
 	return retv
 }
 
-
 func (n *ConstNode) Exec(stack []CallFrame) *value {
 	if (n.v.kind == BVAL) || (n.v.kind == PVAL) {
 		panic(fmt.Errorf("Internal error, a literal function appeared at line %d", n.lineno))
@@ -196,8 +195,8 @@ func (n *SetOpNode) Exec(stack []CallFrame) *value {
 	return &vvv
 }
 
-func (n *WhileNode) Exec(stack []CallFrame) (vv *value){
-	vv = &value{ IVAL, 0, 0.0, nil, nil }
+func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
+	vv = &value{IVAL, 0, 0.0, nil, nil}
 	for {
 		gv := n.guard.Exec(stack)
 		if !gv.Bool(n.guard.Line()) {
@@ -209,7 +208,7 @@ func (n *WhileNode) Exec(stack []CallFrame) (vv *value){
 }
 
 func (n *ForNode) Exec(stack []CallFrame) (vv *value) {
-	vv = &value{ IVAL, 0, 0.0, nil, nil }
+	vv = &value{IVAL, 0, 0.0, nil, nil}
 
 	n.initExpr.Exec(stack)
 
@@ -235,12 +234,12 @@ func (n *IfNode) Exec(stack []CallFrame) *value {
 			return n.elseBody.Exec(stack)
 		}
 	}
-	return &value{ IVAL, 0, 0, nil, nil }
+	return &value{IVAL, 0, 0, nil, nil}
 }
 
 func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	frame := stack[len(stack)-1]
-	vv := &value{ PVAL, 0, 0, n, nil }
+	vv := &value{PVAL, 0, 0, n, nil}
 	frame.vars[n.name] = vv
 	return vv
 }

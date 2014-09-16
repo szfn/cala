@@ -1,25 +1,25 @@
 package main
 
 import (
-	"strings"
-	"math"
 	"fmt"
+	"math"
+	"strings"
 )
 
-var TokenTypes = map[string]tokenType{ }
+var TokenTypes = map[string]tokenType{}
 var OpPriority = [][]tokenType{}
 
 type tokenType *tokenTypeDef
 type tokenTypeDef struct {
 	Token *tokenTypeDef
-	Name string // printable name of the token
+	Name  string // printable name of the token
 	XName string // exact parsing name
 
 	IsSetOperator bool // is set operator (=, +=, -=, etc)
 
-	Priority int // operator priority, set to -1 for non-operators
-	BinFn func(*value, *value, int) *value // for binary operators this is the function called on execution
-	UniFn func(*value, int) *value // for unary operators this is the function called on execution
+	Priority int                              // operator priority, set to -1 for non-operators
+	BinFn    func(*value, *value, int) *value // for binary operators this is the function called on execution
+	UniFn    func(*value, int) *value         // for unary operators this is the function called on execution
 
 	LexFollow []tokenType // lexing aid, if this operator is also the prefix for other tokens put the other tokens here
 }
@@ -50,7 +50,7 @@ func registerTokenType(t tokenType) {
 		if strings.HasPrefix(t.XName, tt.XName) {
 			//println("Adding " + t.XName + " to followers of " + tt.XName)
 			if tt.LexFollow == nil {
-				tt.LexFollow = []tokenType{ t }
+				tt.LexFollow = []tokenType{t}
 			} else {
 				tt.LexFollow = append(tt.LexFollow, t)
 			}
@@ -68,7 +68,7 @@ func registerTokenType(t tokenType) {
 }
 
 func T(name string) tokenType {
-	r := &tokenTypeDef{ nil, name, name, false, -1, nil, nil, nil }
+	r := &tokenTypeDef{nil, name, name, false, -1, nil, nil, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
@@ -79,28 +79,28 @@ func TOp2(name string, priority int, binFn func(*value, *value, int) *value) tok
 }
 
 func TOp(name string, priority int, uniFn func(*value, int) *value) tokenType {
-	r := &tokenTypeDef{ nil, name, name, false, priority, nil, uniFn, nil }
+	r := &tokenTypeDef{nil, name, name, false, priority, nil, uniFn, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
 }
 
 func TSetOp(name string, binFn func(*value, *value, int) *value) tokenType {
-	r := &tokenTypeDef{ nil, name, name, true, -1, binFn, nil, nil }
+	r := &tokenTypeDef{nil, name, name, true, -1, binFn, nil, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
 }
 
 func TOp12(name string, priority int, binFn func(*value, *value, int) *value, uniFn func(*value, int) *value) tokenType {
-	r := &tokenTypeDef{ nil, name, name, false, priority, binFn, uniFn, nil }
+	r := &tokenTypeDef{nil, name, name, false, priority, binFn, uniFn, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
 }
 
 func TOp2X(name, xname string, priority int, binFn func(*value, *value, int) *value) tokenType {
-	r := &tokenTypeDef{ nil, name, xname, false, priority, binFn, nil, nil }
+	r := &tokenTypeDef{nil, name, xname, false, priority, binFn, nil, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
@@ -119,7 +119,7 @@ var SYMTOK = T("any symbol")
 var PAROPTOK = T("(")
 var PARCLTOK = T(")")
 var CRLOPTOK = T("{")
-var CRLCLTOK  = T("}")
+var CRLCLTOK = T("}")
 
 var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
@@ -134,15 +134,15 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, lineno int) *value {
 	}
 	return &value{DVAL, 0, a1.Real(lineno) - a2.Real(lineno), nil, nil}
 },
-func (a1 *value, lineno int) *value {
-	switch a1.kind {
-	case IVAL:
-		return &value{ IVAL, -a1.ival, 0, nil, nil }
-	case DVAL:
-		return &value{ DVAL, 0, -a1.dval, nil, nil }
-	}
-	panic(fmt.Errorf("Can not apply operator to non-numer value at line %d", lineno))
-})
+	func(a1 *value, lineno int) *value {
+		switch a1.kind {
+		case IVAL:
+			return &value{IVAL, -a1.ival, 0, nil, nil}
+		case DVAL:
+			return &value{DVAL, 0, -a1.dval, nil, nil}
+		}
+		panic(fmt.Errorf("Can not apply operator to non-numer value at line %d", lineno))
+	})
 
 var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
@@ -179,8 +179,6 @@ var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, lineno int) *value {
 	return &value{IVAL, a1.Int(lineno) & a2.Int(lineno), 0, nil, nil}
 })
 
-
-
 var INCOPTOK = TOp("++", -1, func(a1 *value, lineno int) *value {
 	switch a1.kind {
 	case IVAL:
@@ -210,7 +208,7 @@ var NEGOPTOK = TOp("!", -1, func(a1 *value, lineno int) *value {
 	if a1.kind != IVAL {
 		panic(fmt.Errorf("Can not negate non-integer value at line %d", lineno))
 	}
-	return &value{ IVAL, asInt(!(a1.ival != 0)), 0, nil, nil }
+	return &value{IVAL, asInt(!(a1.ival != 0)), 0, nil, nil}
 })
 
 var EQOPTOK = TOp2("==", 0, func(a1, a2 *value, lineno int) *value {
@@ -248,9 +246,9 @@ var COMMATOK = T(",")
 var SCOLTOK = T(";")
 
 var KwdTable = map[string]bool{
-	"if": true,
-	"else": true,
+	"if":    true,
+	"else":  true,
 	"while": true,
-	"for": true,
-	"func": true,
+	"for":   true,
+	"func":  true,
 }

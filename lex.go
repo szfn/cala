@@ -2,29 +2,27 @@ package main
 
 import (
 	"bufio"
-	"io"
 	"fmt"
+	"io"
 	"unicode"
 )
 
-
-
 type followCont struct {
-	r rune
+	r     rune
 	ttype tokenType
 }
 
 type token struct {
-	ttype tokenType
-	val string
+	ttype  tokenType
+	val    string
 	lineno int
 }
 
 type lexer struct {
-	lineno int
-	tokStream chan token
-	input *bufio.Reader
-	acc []rune
+	lineno       int
+	tokStream    chan token
+	input        *bufio.Reader
+	acc          []rune
 	acceptNonsyn bool
 }
 
@@ -54,7 +52,6 @@ func (lx *lexer) lerror(err error) bool {
 	}
 	return false
 }
-
 
 // Returns a syntax error
 func (lx *lexer) syntaxError(c rune) {
@@ -264,10 +261,8 @@ func lxOct(lx *lexer) lexerStateFn {
 	panic(fmt.Errorf("Unreachable"))
 }
 
-
-
 // Helper function, saves c into the accumulator then goes to the specified state
-func toState(lx *lexer, c rune, next lexerStateFn) lexerStateFn{
+func toState(lx *lexer, c rune, next lexerStateFn) lexerStateFn {
 	lx.acc[0] = c
 	lx.acc = lx.acc[:1]
 	return next
@@ -301,8 +296,8 @@ func lxBase1(lx *lexer) lexerStateFn {
 		return lxComment
 
 	case '0':
-		if lx.acceptNonsyn  {
-			lx.acc = []rune{ c }
+		if lx.acceptNonsyn {
+			lx.acc = []rune{c}
 			return lxNumber
 		} else {
 			lx.syntaxError(c)
@@ -311,7 +306,7 @@ func lxBase1(lx *lexer) lexerStateFn {
 
 	case '.':
 		if lx.acceptNonsyn {
-			lx.acc = []rune{ '.' }
+			lx.acc = []rune{'.'}
 			return lxRealFrac
 		} else {
 			lx.syntaxError(c)
@@ -320,7 +315,7 @@ func lxBase1(lx *lexer) lexerStateFn {
 
 	case '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		if lx.acceptNonsyn {
-			lx.acc = []rune{ c }
+			lx.acc = []rune{c}
 			return lxReal
 		} else {
 			lx.syntaxError(c)
@@ -340,7 +335,7 @@ func lxBase1(lx *lexer) lexerStateFn {
 
 		if (c == '_') || unicode.IsLetter(c) {
 			if lx.acceptNonsyn {
-				lx.acc = []rune{ c }
+				lx.acc = []rune{c}
 				return lxSymbol
 			} else {
 				lx.syntaxError(c)
@@ -376,12 +371,12 @@ func (lx *lexer) run() {
 }
 
 // Runs the lexer concurrently over input. Returns a tream of tokens
-func lex(input io.Reader) (chan token) {
+func lex(input io.Reader) chan token {
 	r := &lexer{
-		lineno: 1,
+		lineno:    1,
 		tokStream: make(chan token),
-		input: bufio.NewReader(input),
-		acc: make([]rune, 1),
+		input:     bufio.NewReader(input),
+		acc:       make([]rune, 1),
 	}
 	go r.run()
 	return r.tokStream

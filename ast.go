@@ -5,16 +5,17 @@ import (
 )
 
 type valueKind int
+
 const (
 	IVAL valueKind = iota // integer
-	DVAL // double
-	PVAL // a subprogram
-	BVAL // a builtin function
+	DVAL                  // double
+	PVAL                  // a subprogram
+	BVAL                  // a builtin function
 )
 
 type BuiltinFn struct {
 	nargs int
-	fn func(argv []*value, lineno int) (*value)
+	fn    func(argv []*value, lineno int) *value
 }
 
 type value struct {
@@ -33,11 +34,11 @@ type AstNode interface {
 
 type BodyNode struct {
 	statements []AstNode
-	lineno int
+	lineno     int
 }
 
 func NewBodyNode(statements []AstNode, lineno int) *BodyNode {
-	return &BodyNode{ statements, lineno }
+	return &BodyNode{statements, lineno}
 }
 
 func (n *BodyNode) String() string {
@@ -49,15 +50,15 @@ func (n *BodyNode) Line() int {
 }
 
 type UniOpNode struct {
-	name string
-	fn func(*value, int) *value
-	child AstNode
+	name   string
+	fn     func(*value, int) *value
+	child  AstNode
 	lineno int
 }
 
 func NewUniOpNode(tok token, child AstNode) *UniOpNode {
 	fn := tok.ttype.UniFn
-	return &UniOpNode{ tok.ttype.Name, fn, child, tok.lineno }
+	return &UniOpNode{tok.ttype.Name, fn, child, tok.lineno}
 }
 
 func (n *UniOpNode) String() string {
@@ -69,12 +70,12 @@ func (n *UniOpNode) Line() int {
 }
 
 type VarNode struct {
-	name string
+	name   string
 	lineno int
 }
 
 func NewVarNode(name string, lineno int) *VarNode {
-	return &VarNode{ name, lineno }
+	return &VarNode{name, lineno}
 }
 
 func (n *VarNode) String() string {
@@ -86,13 +87,13 @@ func (n *VarNode) Line() int {
 }
 
 type FnCallNode struct {
-	name string
-	args []AstNode
+	name   string
+	args   []AstNode
 	lineno int
 }
 
 func NewFnCallNode(name string, args []AstNode, lineno int) *FnCallNode {
-	return &FnCallNode{ name, args, lineno }
+	return &FnCallNode{name, args, lineno}
 }
 
 func (n *FnCallNode) String() string {
@@ -104,7 +105,7 @@ func (n *FnCallNode) Line() int {
 }
 
 type ConstNode struct {
-	v value
+	v      value
 	lineno int
 }
 
@@ -112,7 +113,7 @@ func NewConstNode(kind valueKind, ival int64, dval float64, lineno int) *ConstNo
 	r := &ConstNode{}
 	r.v.kind = kind
 	r.v.ival = ival
-	r.v.dval =dval
+	r.v.dval = dval
 	r.lineno = lineno
 	return r
 }
@@ -126,16 +127,18 @@ func (n *ConstNode) Line() int {
 }
 
 type BinOpNode struct {
-	name string
-	fn func(a1, a2 *value, lineno int) *value
-	op1 AstNode
-	op2 AstNode
-	lineno int
+	name     string
+	fn       func(a1, a2 *value, lineno int) *value
+	op1      AstNode
+	op2      AstNode
+	lineno   int
+	priority int
+	parent   *BinOpNode
 }
 
-func NewBinOpNode(tok token, op1, op2 AstNode) *BinOpNode {
+func NewBinOpNode(tok token, op1, op2 AstNode, parent *BinOpNode) *BinOpNode {
 	fn := tok.ttype.BinFn
-	return &BinOpNode{ tok.ttype.Name, fn, op1, op2, tok.lineno }
+	return &BinOpNode{tok.ttype.Name, fn, op1, op2, tok.lineno, tok.ttype.Priority, parent}
 }
 
 func (n *BinOpNode) String() string {
@@ -147,15 +150,15 @@ func (n *BinOpNode) Line() int {
 }
 
 type SetOpNode struct {
-	name string
-	fnOp func(a1, a2 *value, lineno int) *value
+	name    string
+	fnOp    func(a1, a2 *value, lineno int) *value
 	varName string
-	op1 AstNode
-	lineno int
+	op1     AstNode
+	lineno  int
 }
 
 func NewSetOpNode(tok token, varName string, op1 AstNode) *SetOpNode {
-	return &SetOpNode{ tok.val, tok.ttype.BinFn, varName, op1, tok.lineno }
+	return &SetOpNode{tok.val, tok.ttype.BinFn, varName, op1, tok.lineno}
 }
 
 func (n *SetOpNode) String() string {
@@ -167,8 +170,8 @@ func (n *SetOpNode) Line() int {
 }
 
 type WhileNode struct {
-	guard AstNode
-	body AstNode
+	guard  AstNode
+	body   AstNode
 	lineno int
 }
 
@@ -176,7 +179,7 @@ func NewWhileNode(guard, body AstNode, lineno int) *WhileNode {
 	return &WhileNode{guard, body, lineno}
 }
 
-func (n *WhileNode) String() string{
+func (n *WhileNode) String() string {
 	return fmt.Sprintf("WhileNode<%s, %s>", n.guard, n.body)
 }
 
@@ -186,10 +189,10 @@ func (n *WhileNode) Line() int {
 
 type ForNode struct {
 	initExpr AstNode
-	guard AstNode
+	guard    AstNode
 	incrExpr AstNode
-	body AstNode
-	lineno int
+	body     AstNode
+	lineno   int
 }
 
 func NewForNode(initExpr, guard, incrExpr, body AstNode, lineno int) AstNode {
@@ -205,10 +208,10 @@ func (n *ForNode) Line() int {
 }
 
 type IfNode struct {
-	guard AstNode
-	ifBody AstNode
+	guard    AstNode
+	ifBody   AstNode
 	elseBody AstNode
-	lineno int
+	lineno   int
 }
 
 func NewIfNode(guard, ifBody, elseBody AstNode, lineno int) AstNode {
@@ -228,9 +231,9 @@ func (n *IfNode) Line() int {
 }
 
 type FnDefNode struct {
-	name string
-	args []string
-	body AstNode
+	name   string
+	args   []string
+	body   AstNode
 	lineno int
 }
 
@@ -246,3 +249,21 @@ func (n *FnDefNode) Line() int {
 	return n.lineno
 }
 
+type NilNode struct {
+}
+
+func NewNilNode() NilNode {
+	return NilNode{}
+}
+
+func (n *NilNode) String() string {
+	return "!!!NILNODE!!!"
+}
+
+func (n *NilNode) Line() int {
+	return -1
+}
+
+func (n *NilNode) Exec(callStack []CallFrame) *value {
+	panic(fmt.Errorf("NilNode can not be executed"))
+}

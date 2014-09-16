@@ -1,10 +1,10 @@
 package main
 
 import (
-	"strings"
-	"testing"
 	"fmt"
 	"os"
+	"strings"
+	"testing"
 )
 
 func matchAst(t *testing.T, pgm string, expected string) {
@@ -43,8 +43,41 @@ func TestParseExpr(t *testing.T) {
 		"a += fn3(2+2, 3) * 2",
 		"BodyNode<[SetOpNode<+=, a, BinOpNode<*, FnCallNode<fn3, [BinOpNode<+, ConstNode<0, 2, 0>, ConstNode<0, 2, 0>> ConstNode<0, 3, 0>]>, ConstNode<0, 2, 0>>>]>")
 	matchAst(t,
-		"1 + 2 * 3 - 2",
-		"BodyNode<[BinOpNode<+, ConstNode<0, 1, 0>, BinOpNode<-, BinOpNode<*, ConstNode<0, 2, 0>, ConstNode<0, 3, 0>>, ConstNode<0, 2, 0>>>]>")
+		"1 + 2 * 3 - 4",
+		"BodyNode<[BinOpNode<-, BinOpNode<+, ConstNode<0, 1, 0>, BinOpNode<*, ConstNode<0, 2, 0>, ConstNode<0, 3, 0>>>, ConstNode<0, 4, 0>>]>")
+	matchAst(t,
+		"a + b + c * d * e",
+		NewBodyNode([]AstNode{
+			NewBinOpNode(token{ADDOPTOK, "+", 0},
+				NewBinOpNode(token{ADDOPTOK, "+", 0},
+					NewVarNode("a", 0),
+					NewVarNode("b", 0), nil),
+				NewBinOpNode(token{MULOPTOK, "*", 0},
+					NewBinOpNode(token{MULOPTOK, "*", 0},
+						NewVarNode("c", 0),
+						NewVarNode("d", 0), nil),
+					NewVarNode("e", 0), nil), nil)}, 0).String())
+	matchAst(t,
+		"a + b + c * d + e",
+		NewBodyNode([]AstNode{
+			NewBinOpNode(token{ADDOPTOK, "+", 0},
+				NewBinOpNode(token{ADDOPTOK, "+", 0},
+					NewBinOpNode(token{ADDOPTOK, "+", 0},
+						NewVarNode("a", 0),
+						NewVarNode("b", 0), nil),
+					NewBinOpNode(token{MULOPTOK, "*", 0},
+						NewVarNode("c", 0),
+						NewVarNode("d", 0), nil), nil),
+				NewVarNode("e", 0), nil)}, 0).String())
+
+	matchAst(t,
+		"a - b + c",
+		NewBodyNode([]AstNode{
+			NewBinOpNode(token{ADDOPTOK, "+", 0},
+				NewBinOpNode(token{SUBOPTOK, "-", 0},
+					NewVarNode("a", 0),
+					NewVarNode("b", 0), nil),
+				NewVarNode("c", 0), nil)}, 0).String())
 }
 
 func TestParseNumber(t *testing.T) {
@@ -103,4 +136,7 @@ func TestParseMulDiv(t *testing.T) {
 	matchAst(t,
 		"11/25 * 2",
 		"BodyNode<[BinOpNode<*, BinOpNode</, ConstNode<0, 11, 0>, ConstNode<0, 25, 0>>, ConstNode<0, 2, 0>>]>")
+	matchAst(t,
+		"2 * 11/25",
+		"BodyNode<[BinOpNode<*, ConstNode<0, 2, 0>, BinOpNode</, ConstNode<0, 11, 0>, ConstNode<0, 25, 0>>>]>")
 }

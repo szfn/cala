@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"github.com/wendal/readline-go"
+	"os"
 )
 
 func main() {
@@ -42,7 +42,7 @@ func main() {
 		callStack = callStack[:1]
 	}
 
-	if (interactive <= 0) {
+	if interactive <= 0 {
 		return
 	}
 

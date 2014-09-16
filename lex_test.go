@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 func tokEqual(t *testing.T, tt []token, te []token) {
@@ -34,23 +34,23 @@ func TestLexerOk(t *testing.T) {
 `
 
 	expected := []token{
-		{ OCTTOK, "0123", 3 },
-		{ HEXTOK, "0x1aAf5", 3 },
-		{ INTTOK, "0", 3 },
-		{ INTTOK, "45", 3 },
+		{OCTTOK, "0123", 3},
+		{HEXTOK, "0x1aAf5", 3},
+		{INTTOK, "0", 3},
+		{INTTOK, "45", 3},
 
-		{ REALTOK, ".345", 4 },
-		{ REALTOK, "0.345", 4 },
-		{ REALTOK, "3.345", 4 },
-		{ REALTOK, "32.3126e2", 4 },
-		{ REALTOK, "32.3126e-2", 4 },
-		{ REALTOK, "32.3126e+2", 4 },
+		{REALTOK, ".345", 4},
+		{REALTOK, "0.345", 4},
+		{REALTOK, "3.345", 4},
+		{REALTOK, "32.3126e2", 4},
+		{REALTOK, "32.3126e-2", 4},
+		{REALTOK, "32.3126e+2", 4},
 
-		{ SYMTOK, "_something", 5 },
-		{ SYMTOK, "something", 5 },
-		{ SYMTOK, "som1231", 5 },
+		{SYMTOK, "_something", 5},
+		{SYMTOK, "something", 5},
+		{SYMTOK, "som1231", 5},
 
-		{ EOFTOK, "", 6 },
+		{EOFTOK, "", 6},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -65,9 +65,9 @@ func TestLexerFail(t *testing.T) {
 `
 
 	expected := []token{
-		{ OCTTOK, "0123", 3 },
-		{ OCTTOK, "0123", 3 }, // ← spurious token emitted here
-		{ ERRTOK, "Syntax error: unexpected character '8' in line 3", 3},
+		{OCTTOK, "0123", 3},
+		{OCTTOK, "0123", 3}, // ← spurious token emitted here
+		{ERRTOK, "Syntax error: unexpected character '8' in line 3", 3},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -81,17 +81,17 @@ a+b**z(//=32.2)
 `
 
 	expected := []token{
-		{ SYMTOK, "a", 2 },
-		{ ADDOPTOK, "+", 2 },
-		{ SYMTOK, "b", 2 },
-		{ POWOPTOK, "**", 2 },
-		{ SYMTOK, "z", 2 },
-		{ PAROPTOK, "(", 2 },
-		{ DIVOPTOK, "/", 2 },
-		{ DIVEQTOK, "/=", 2 },
-		{ REALTOK, "32.2", 2 },
-		{ PARCLTOK, ")", 2 },
-		{ EOFTOK, "", 3 },
+		{SYMTOK, "a", 2},
+		{ADDOPTOK, "+", 2},
+		{SYMTOK, "b", 2},
+		{POWOPTOK, "**", 2},
+		{SYMTOK, "z", 2},
+		{PAROPTOK, "(", 2},
+		{DIVOPTOK, "/", 2},
+		{DIVEQTOK, "/=", 2},
+		{REALTOK, "32.2", 2},
+		{PARCLTOK, ")", 2},
+		{EOFTOK, "", 3},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -102,10 +102,10 @@ a+b**z(//=32.2)
 func TestLexerOk2(t *testing.T) {
 	s := "2+2"
 	expected := []token{
-		{ INTTOK, "2", 1 },
-		{ ADDOPTOK, "+", 1 },
-		{ INTTOK, "2", 1 },
-		{ EOFTOK, "", 1 },
+		{INTTOK, "2", 1},
+		{ADDOPTOK, "+", 1},
+		{INTTOK, "2", 1},
+		{EOFTOK, "", 1},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -116,14 +116,14 @@ func TestLexerOk2(t *testing.T) {
 func TestLexerOk3(t *testing.T) {
 	s := "2**(1/2)"
 	expected := []token{
-		{ INTTOK, "2", 1 },
-		{ POWOPTOK, "**", 1 },
-		{ PAROPTOK, "(", 1 },
-		{ INTTOK, "1", 1 },
-		{ DIVOPTOK, "/", 1 },
-		{ INTTOK, "2", 1 },
-		{ PARCLTOK, ")", 1 },
-		{ EOFTOK, "", 1 },
+		{INTTOK, "2", 1},
+		{POWOPTOK, "**", 1},
+		{PAROPTOK, "(", 1},
+		{INTTOK, "1", 1},
+		{DIVOPTOK, "/", 1},
+		{INTTOK, "2", 1},
+		{PARCLTOK, ")", 1},
+		{EOFTOK, "", 1},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -134,10 +134,10 @@ func TestLexerOk3(t *testing.T) {
 func TestLexerOk4(t *testing.T) {
 	s := "2 %= 2"
 	expected := []token{
-		{ INTTOK, "2", 1 },
-		{ MODEQTOK, "%=", 1 },
-		{ INTTOK, "2", 1 },
-		{ EOFTOK, "", 1 },
+		{INTTOK, "2", 1},
+		{MODEQTOK, "%=", 1},
+		{INTTOK, "2", 1},
+		{EOFTOK, "", 1},
 	}
 
 	tokens := lexAll(strings.NewReader(s))
@@ -149,10 +149,10 @@ func TestLexerOk5(t *testing.T) {
 	s := "!x++"
 
 	expected := []token{
-		{ NEGOPTOK, "!",  1 },
-		{ SYMTOK, "x", 1 },
-		{ INCOPTOK, "++", 1 },
-		{ EOFTOK, "", 1 },
+		{NEGOPTOK, "!", 1},
+		{SYMTOK, "x", 1},
+		{INCOPTOK, "++", 1},
+		{EOFTOK, "", 1},
 	}
 
 	tokens := lexAll(strings.NewReader(s))

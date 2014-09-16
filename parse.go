@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"runtime"
 	"io"
+	"runtime"
+	"strconv"
 	"strings"
 )
 
 type tokenStream struct {
 	tokStream chan token
-	rewound []token // lookahead tokens
+	rewound   []token // lookahead tokens
 }
 
 func (ts *tokenStream) get() token {
@@ -28,7 +28,7 @@ func (ts *tokenStream) rewind(t token) {
 }
 
 type ParseError struct {
-	msg string
+	msg        string
 	stackTrace []string
 }
 
@@ -36,7 +36,9 @@ func getStackTrace() []string {
 	trace := []string{}
 	for i := 1; ; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		if !ok { break }
+		if !ok {
+			break
+		}
 		trace = append(trace, fmt.Sprintf("%s:%d", file, line))
 	}
 	return trace
@@ -67,7 +69,7 @@ func parse(tokStream chan token) (n AstNode, err error) {
 			}
 		}
 	}()
-	ts := &tokenStream{ tokStream, make([]token, 0) }
+	ts := &tokenStream{tokStream, make([]token, 0)}
 	n = parseStatements(ts, true)
 	return
 }
@@ -177,9 +179,12 @@ func parseStatement(ts *tokenStream, toplevel bool) AstNode {
 			unexpectedToken(tok, " (can not define nested functions)")
 		}
 		return parseFnDef(ts, tok.lineno)
-	case "if": return parseIf(ts, tok.lineno)
-	case "while": return parseWhile(ts, tok.lineno)
-	case "for": return parseFor(ts, tok.lineno)
+	case "if":
+		return parseIf(ts, tok.lineno)
+	case "while":
+		return parseWhile(ts, tok.lineno)
+	case "for":
+		return parseFor(ts, tok.lineno)
 	}
 	unexpectedToken(tok, " (while parsing a statement)")
 	panic("Unreachable")
@@ -267,23 +272,66 @@ func parseExpression(ts *tokenStream) AstNode {
 }
 
 func parseExpressionEx(ts *tokenStream, p [][]tokenType) AstNode {
-	var operand AstNode
-	if len(p) == 1 {
-		operand = parseExpressionNoinfix(ts)
-	} else {
-		operand = parseExpressionEx(ts, p[1:])
-	}
-	tok := ts.get()
+	var head *BinOpNode = nil
+	var curInc *BinOpNode = nil
 
-	for _, ttype := range p[0] {
-		if tok.ttype == ttype { // operator recognized by this level of parseExpressionEx
-			return NewBinOpNode(tok, operand, parseExpressionEx(ts, p))
+	for {
+		/*if head != nil {
+			println("current head:", head.String())
+		}*/
+		floatingNode := parseExpressionNoinfix(ts)
+		optok := ts.get()
+
+		if (optok.ttype.Priority < 0) || (optok.ttype.BinFn == nil) {
+			// not a binary operator
+			ts.rewind(optok)
+			if curInc == nil {
+				return floatingNode
+			}
+			curInc.op2 = floatingNode
+			return head
+		}
+
+		if curInc == nil {
+			curInc = NewBinOpNode(optok, floatingNode, &NilNode{}, nil)
+			head = curInc
+			continue
+		}
+
+		// if the next operator is higher priority of the currently incomplete binary operator,
+		// add next operator as operand to the incomplete binary operator
+		if optok.ttype.Priority > curInc.priority {
+			n := NewBinOpNode(optok, floatingNode, &NilNode{}, curInc)
+			curInc.op2 = n
+			curInc = n
+			continue
+		}
+
+		// otherwise we need to find the correct insertion point based on operator priority
+
+		curInc.op2 = floatingNode
+		floatingNode = nil
+
+		var cur *BinOpNode
+		for cur = curInc.parent; (cur != nil) && (optok.ttype.Priority <= cur.priority); cur = cur.parent {
+			//nothing here
+		}
+
+		if cur == nil {
+			curInc = NewBinOpNode(optok, head, &NilNode{}, nil)
+			head.parent = curInc
+			head = curInc
+		} else {
+			curInc = NewBinOpNode(optok, cur.op2, &NilNode{}, nil)
+			switch p := cur.op2.(type) {
+			case *BinOpNode:
+				p.parent = curInc
+			default:
+				panic(fmt.Errorf("This is impossible"))
+			}
+			cur.op2 = curInc
 		}
 	}
-
-	// if we get here we couldn't recognize any binary operator at the current operator priority level
-	ts.rewind(tok)
-	return operand
 }
 
 // Parses everything related to expressions except infix operators (because they are hard)
@@ -293,10 +341,14 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 
 	switch tok.ttype {
 	/* leaves */
-	case REALTOK: return parseReal(tok.val, tok.lineno)
-	case INTTOK: return parseInt(tok.val, 10, tok.lineno)
-	case HEXTOK: return parseInt(tok.val[2:], 16, tok.lineno)
-	case OCTTOK: return parseInt(tok.val[1:], 8, tok.lineno)
+	case REALTOK:
+		return parseReal(tok.val, tok.lineno)
+	case INTTOK:
+		return parseInt(tok.val, 10, tok.lineno)
+	case HEXTOK:
+		return parseInt(tok.val[2:], 16, tok.lineno)
+	case OCTTOK:
+		return parseInt(tok.val[1:], 8, tok.lineno)
 
 	/* variables, function calls, postfix operators */
 	case SYMTOK:
@@ -304,8 +356,10 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 		switch tok2.ttype {
 
 		/* variable with postifix operator */
-		case INCOPTOK: fallthrough
-		case DECOPTOK: return NewUniOpNode(tok2, NewVarNode(tok.val, tok.lineno))
+		case INCOPTOK:
+			fallthrough
+		case DECOPTOK:
+			return NewUniOpNode(tok2, NewVarNode(tok.val, tok.lineno))
 
 		/* function call */
 		case PAROPTOK:
@@ -318,9 +372,12 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 		}
 
 	/* prefix unary operators */
-	case ADDOPTOK: return parseExpressionNoinfix(ts)
-	case SUBOPTOK: return NewUniOpNode(tok, parseExpressionNoinfix(ts))
-	case NEGOPTOK: return NewUniOpNode(tok, parseExpressionNoinfix(ts))
+	case ADDOPTOK:
+		return parseExpressionNoinfix(ts)
+	case SUBOPTOK:
+		return NewUniOpNode(tok, parseExpressionNoinfix(ts))
+	case NEGOPTOK:
+		return NewUniOpNode(tok, parseExpressionNoinfix(ts))
 
 	/* subexpression */
 	case PAROPTOK:

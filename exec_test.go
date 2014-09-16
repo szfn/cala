@@ -10,7 +10,7 @@ func execString(t *testing.T, s string) *value {
 	pgm, err := parseString(s)
 	if err != nil {
 		fmt.Printf("Program:\n%s\n", s)
-		fmt.Printf("%v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		t.Fatalf("")
 	}
 	return pgm.Exec(NewCallStack())
@@ -22,7 +22,7 @@ func testExecReal(t *testing.T, s string, tgt float64) {
 		fmt.Printf("Program:\n%s\n", s)
 		t.Fatalf("Output value not real: %v\n", v)
 	}
-	if math.Abs(v.dval - tgt) > 0.0001 {
+	if math.Abs(v.dval-tgt) > 0.0001 {
 		fmt.Printf("Program:\n%s\n", s)
 		t.Fatalf("Output value mismatch %v (expected: %d)\n", v, tgt)
 	}
@@ -192,27 +192,27 @@ func TestAckermann(t *testing.T) {
 		}
 	`
 
-	testExecInt(t, ackermann + "af(0, 0)", 1)
-	testExecInt(t, ackermann + "af(0, 1)", 2)
-	testExecInt(t, ackermann + "af(0, 2)", 3)
-	testExecInt(t, ackermann + "af(0, 3)", 4)
-	testExecInt(t, ackermann + "af(0, 4)", 5)
+	testExecInt(t, ackermann+"af(0, 0)", 1)
+	testExecInt(t, ackermann+"af(0, 1)", 2)
+	testExecInt(t, ackermann+"af(0, 2)", 3)
+	testExecInt(t, ackermann+"af(0, 3)", 4)
+	testExecInt(t, ackermann+"af(0, 4)", 5)
 
-	testExecInt(t, ackermann + "af(1, 0)", 2)
-	testExecInt(t, ackermann + "af(1, 1)", 3)
-	testExecInt(t, ackermann + "af(1, 2)", 4)
-	testExecInt(t, ackermann + "af(1, 3)", 5)
-	testExecInt(t, ackermann + "af(1, 4)", 6)
+	testExecInt(t, ackermann+"af(1, 0)", 2)
+	testExecInt(t, ackermann+"af(1, 1)", 3)
+	testExecInt(t, ackermann+"af(1, 2)", 4)
+	testExecInt(t, ackermann+"af(1, 3)", 5)
+	testExecInt(t, ackermann+"af(1, 4)", 6)
 
-	testExecInt(t, ackermann + "af(2, 0)", 3)
-	testExecInt(t, ackermann + "af(2, 1)", 5)
-	testExecInt(t, ackermann + "af(2, 2)", 7)
-	testExecInt(t, ackermann + "af(2, 3)", 9)
-	testExecInt(t, ackermann + "af(2, 4)", 11)
+	testExecInt(t, ackermann+"af(2, 0)", 3)
+	testExecInt(t, ackermann+"af(2, 1)", 5)
+	testExecInt(t, ackermann+"af(2, 2)", 7)
+	testExecInt(t, ackermann+"af(2, 3)", 9)
+	testExecInt(t, ackermann+"af(2, 4)", 11)
 
-	testExecInt(t, ackermann + "af(3, 0)", 5)
-	testExecInt(t, ackermann + "af(3, 1)", 13)
-	testExecInt(t, ackermann + "af(3, 2)", 29)
-	testExecInt(t, ackermann + "af(3, 3)", 61)
-	testExecInt(t, ackermann + "af(3, 4)", 125)
+	testExecInt(t, ackermann+"af(3, 0)", 5)
+	testExecInt(t, ackermann+"af(3, 1)", 13)
+	testExecInt(t, ackermann+"af(3, 2)", 29)
+	testExecInt(t, ackermann+"af(3, 3)", 61)
+	testExecInt(t, ackermann+"af(3, 4)", 125)
 }
