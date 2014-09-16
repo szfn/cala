@@ -132,6 +132,23 @@ func TestExecComposed(t *testing.T) {
 	testExecReal(t, "(2 + 3) / ( 2 * 3)", 5.0/6.0)
 }
 
+func TestExecArithmeticBook(t *testing.T) {
+	testExecInt(t, "3+2", 5)
+	testExecReal(t, "4/3", 4.0/3.0)
+	testExecReal(t, "2*(3 + 6/2)/4", 3.0)
+	testExecInt(t, "6-9", -3)
+	testExecInt(t, "3 + 4 * 2", 11)
+	testExecInt(t, "6 + 7 * 8", 62)
+	testExecReal(t, "16 / 8 - 2", 0.0)
+	testExecReal(t, "3 + 6 * (5 + 4) / 3 - 7", 14.0)
+	testExecReal(t, "9 - 5 / (8 - 3) * 2 + 6", 13.0)
+	testExecReal(t, "150 / (6 + 3 * 8) - 5", 0.0)
+	testExecInt(t, "32 + 3 * 15", 77)
+	testExecInt(t, "9 + 6 * (8 - 5)", 27)
+	testExecReal(t, " (14 - 5) / (9 - 6)", 3.0)
+	testExecReal(t, "5 * 8 + 6 / 6 - 12 * 2", 17.0)
+}
+
 func TestExecStatement(t *testing.T) {
 	testExecInt(t, `
 		a = 2;
