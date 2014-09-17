@@ -48,6 +48,8 @@ func main() {
 
 	prompt := ""
 
+	varct := 0
+
 	for {
 		line := readline.ReadLine(&prompt)
 		if line == nil {
@@ -61,14 +63,51 @@ func main() {
 		}
 
 		vret, eerr := execWithCallStack(program, callStack)
+		callStack = callStack[:1]
+
 		if eerr != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", eerr)
 		} else {
-			fmt.Printf("= %s\n", vret)
-		}
-		callStack = callStack[:1]
+			autonumberVar := lookup(callStack, "_autonumber", false, -1)
+			prn := func(varname string) bool {
+				if autonumberVar.ival != 0 {
+					fmt.Printf("= %-60s = %s\n", vret, varname)
+					return true
+				} else {
+					fmt.Printf("= %s\n", vret)
+					return false
+				}
+			}
 
+			if ok, name := isVarLookup(program); ok {
+				prn(name)
+			} else {
+				name = fmt.Sprintf("_%d", varct)
+				if prn(name) {
+					autovar := lookup(callStack, name, true, -1)
+					*autovar = *vret
+					varct++
+				}
+				autovar := lookup(callStack, "_", true, -1)
+				*autovar = *vret
+			}
+		}
 	}
 
 	os.Exit(0)
+}
+
+func isVarLookup(program AstNode) (bool, string) {
+	bn, ok := program.(*BodyNode)
+	if !ok {
+		return false, ""
+	}
+	if len(bn.statements) != 1 {
+		return false, ""
+	}
+	vn, ok := bn.statements[0].(*VarNode)
+	if !ok {
+		return false, ""
+	}
+	return true, vn.name
 }

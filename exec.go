@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 )
 
 type CallFrame struct {
@@ -52,23 +53,24 @@ func NewCallStack() []CallFrame {
 	return []CallFrame{
 		{
 			vars: map[string]*value{
-				"abs":   btnAbs,
-				"acos":  btnAcos,
-				"asin":  btnAsin,
-				"atan":  btnAtan,
-				"cos":   btnCos,
-				"cosh":  btnCosh,
-				"floor": btnFloor,
-				"ceil":  btnCeil,
-				"ln":    btnLn,
-				"log10": btnLog10,
-				"log2":  btnLog2,
-				"sin":   btnSin,
-				"sinh":  btnSinh,
-				"sqrt":  btnSqrt,
-				"tan":   btnTan,
-				"tanh":  btnTanh,
-				"dpy":   btnDpy,
+				"abs":         btnAbs,
+				"acos":        btnAcos,
+				"asin":        btnAsin,
+				"atan":        btnAtan,
+				"cos":         btnCos,
+				"cosh":        btnCosh,
+				"floor":       btnFloor,
+				"ceil":        btnCeil,
+				"ln":          btnLn,
+				"log10":       btnLog10,
+				"log2":        btnLog2,
+				"sin":         btnSin,
+				"sinh":        btnSinh,
+				"sqrt":        btnSqrt,
+				"tan":         btnTan,
+				"tanh":        btnTanh,
+				"dpy":         btnDpy,
+				"_autonumber": &value{kind: IVAL, ival: 0},
 			},
 		},
 	}
@@ -242,6 +244,20 @@ func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	vv := &value{PVAL, 0, 0, n, nil}
 	frame.vars[n.name] = vv
 	return vv
+}
+
+func (n *NilNode) Exec(callStack []CallFrame) *value {
+	panic(fmt.Errorf("NilNode can not be executed"))
+}
+
+func (n *DpyNode) Exec(callStack []CallFrame) *value {
+	v := n.expr.Exec(callStack)
+	return btnDpy.bval.fn([]*value{v}, n.lineno)
+}
+
+func (n *ExitNode) Exec(callStack []CallFrame) *value {
+	os.Exit(0)
+	return &value{IVAL, 0, 0.0, nil, nil}
 }
 
 func asInt(x bool) int64 {

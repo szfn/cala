@@ -7,7 +7,8 @@ import (
 )
 
 var TokenTypes = map[string]tokenType{}
-var OpPriority = [][]tokenType{}
+
+//var OpPriority = [][]tokenType{}
 
 type tokenType *tokenTypeDef
 type tokenTypeDef struct {
@@ -26,19 +27,6 @@ type tokenTypeDef struct {
 
 func registerTokenType(t tokenType) {
 	TokenTypes[t.XName] = t
-
-	/* register to OpPriority table */
-	if t.Priority != -1 {
-		if t.Priority >= len(OpPriority) {
-			NewOpPriority := make([][]tokenType, t.Priority+1, t.Priority+1)
-			copy(NewOpPriority, OpPriority)
-			OpPriority = NewOpPriority
-		}
-		if OpPriority[t.Priority] == nil {
-			OpPriority[t.Priority] = []tokenType{}
-		}
-		OpPriority[t.Priority] = append(OpPriority[t.Priority], t)
-	}
 
 	/* Automatically compte lexer followers */
 	lexFollow := []tokenType{}
@@ -120,6 +108,7 @@ var PAROPTOK = T("(")
 var PARCLTOK = T(")")
 var CRLOPTOK = T("{")
 var CRLCLTOK = T("}")
+var DPYSTMTOK = T("@")
 
 var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
@@ -251,4 +240,5 @@ var KwdTable = map[string]bool{
 	"while": true,
 	"for":   true,
 	"func":  true,
+	"exit":  true,
 }

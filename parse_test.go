@@ -69,12 +69,19 @@ func TestParseExpr(t *testing.T) {
 						NewVarNode("c", 0),
 						NewVarNode("d", 0), nil), nil),
 				NewVarNode("e", 0), nil)}, 0).String())
-
 	matchAst(t,
 		"a - b + c",
 		NewBodyNode([]AstNode{
 			NewBinOpNode(token{ADDOPTOK, "+", 0},
 				NewBinOpNode(token{SUBOPTOK, "-", 0},
+					NewVarNode("a", 0),
+					NewVarNode("b", 0), nil),
+				NewVarNode("c", 0), nil)}, 0).String())
+	matchAst(t,
+		"a + b - c",
+		NewBodyNode([]AstNode{
+			NewBinOpNode(token{SUBOPTOK, "-", 0},
+				NewBinOpNode(token{ADDOPTOK, "+", 0},
 					NewVarNode("a", 0),
 					NewVarNode("b", 0), nil),
 				NewVarNode("c", 0), nil)}, 0).String())

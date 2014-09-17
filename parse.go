@@ -153,23 +153,22 @@ func parseFnDef(ts *tokenStream, lineno int) AstNode {
 }
 
 // Parses a statement, the first token already read
-// statement ::= <if> | <while> | <for> | <func-def> | <expression>;
+// statement ::= <if> | <while> | <for> | <func-def> | "@" [<expression>] | <expression>;
 // the semicolon at the end of the expression becomes optional if toplevel == true
 // function definitions can only appear at toplevel
 func parseStatement(ts *tokenStream, toplevel bool) AstNode {
 	tok := ts.get()
 
+	if tok.val == "@" {
+		e := parseDpy(ts, tok.lineno)
+		parseSemicolon(ts, toplevel)
+		return e
+	}
+
 	if tok.ttype != KWDTOK {
 		ts.rewind(tok)
 		e := parseExpression(ts)
-		tok = ts.get()
-		if tok.ttype != SCOLTOK {
-			if toplevel {
-				ts.rewind(tok)
-			} else {
-				unexpectedToken(tok, " (expecting ';' while reading statement)")
-			}
-		}
+		parseSemicolon(ts, toplevel)
 		return e
 	}
 
@@ -185,9 +184,24 @@ func parseStatement(ts *tokenStream, toplevel bool) AstNode {
 		return parseWhile(ts, tok.lineno)
 	case "for":
 		return parseFor(ts, tok.lineno)
+	case "exit":
+		e := parseExit(ts, tok.lineno)
+		parseSemicolon(ts, toplevel)
+		return e
 	}
 	unexpectedToken(tok, " (while parsing a statement)")
 	panic("Unreachable")
+}
+
+func parseSemicolon(ts *tokenStream, toplevel bool) {
+	tok := ts.get()
+	if tok.ttype != SCOLTOK {
+		if toplevel {
+			ts.rewind(tok)
+		} else {
+			unexpectedToken(tok, " (expecting ';' while reading statement)")
+		}
+	}
 }
 
 // Parses an if statement, note that the 'if' keyword itself has already been read
@@ -247,6 +261,28 @@ func parseFor(ts *tokenStream, lineno int) AstNode {
 	return NewForNode(initExpr, guard, incrExpr, body, lineno)
 }
 
+// Parses a display statement (it's either followed by an expression or the end of the statement)
+func parseDpy(ts *tokenStream, lineno int) AstNode {
+	tok := ts.get()
+	if tok.ttype == SCOLTOK || tok.ttype == EOFTOK {
+		ts.rewind(tok)
+		return &DpyNode{NewVarNode("_", lineno), lineno}
+	}
+
+	ts.rewind(tok)
+	expr := parseExpression(ts)
+	return &DpyNode{expr, lineno}
+}
+
+func parseExit(ts *tokenStream, lineno int) AstNode {
+	tok := ts.get()
+	ts.rewind(tok)
+	if tok.ttype != SCOLTOK && tok.ttype != EOFTOK {
+		unexpectedToken(tok, " (while parsing exit statement)")
+	}
+	return &ExitNode{lineno}
+}
+
 // Parses expressions, this only does the infix operator parsing, everything else is offloaded to parseExpressionNoinfix
 // expression ::= <var> <assignment-operator> <expressionComp> | <expressionComp>
 // expressionComp ::= <expressionBool> <comparison-operator> <expressionComp> | <expressionBool>
@@ -258,20 +294,20 @@ func parseExpression(ts *tokenStream) AstNode {
 	tok1 := ts.get()
 	if tok1.ttype != SYMTOK {
 		ts.rewind(tok1)
-		return parseExpressionEx(ts, OpPriority)
+		return parseExpressionEx(ts)
 	}
 
 	tok2 := ts.get() // fun fact: this the thing that makes this grammar LL(2) instead of LL(1)
 	if tok2.ttype.IsSetOperator {
-		return NewSetOpNode(tok2, tok1.val, parseExpressionEx(ts, OpPriority))
+		return NewSetOpNode(tok2, tok1.val, parseExpressionEx(ts))
 	}
 
 	ts.rewind(tok2)
 	ts.rewind(tok1)
-	return parseExpressionEx(ts, OpPriority)
+	return parseExpressionEx(ts)
 }
 
-func parseExpressionEx(ts *tokenStream, p [][]tokenType) AstNode {
+func parseExpressionEx(ts *tokenStream) AstNode {
 	var head *BinOpNode = nil
 	var curInc *BinOpNode = nil
 

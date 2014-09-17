@@ -264,6 +264,27 @@ func (n *NilNode) Line() int {
 	return -1
 }
 
-func (n *NilNode) Exec(callStack []CallFrame) *value {
-	panic(fmt.Errorf("NilNode can not be executed"))
+type DpyNode struct {
+	expr   AstNode
+	lineno int
+}
+
+func (n *DpyNode) String() string {
+	return fmt.Sprintf("DpyNode<%s>", n.expr)
+}
+
+func (n *DpyNode) Line() int {
+	return n.lineno
+}
+
+type ExitNode struct {
+	lineno int
+}
+
+func (n *ExitNode) String() string {
+	return fmt.Sprintf("ExitNode<>")
+}
+
+func (n *ExitNode) Line() int {
+	return n.lineno
 }
