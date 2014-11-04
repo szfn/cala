@@ -89,7 +89,12 @@ func main() {
 					varct++
 				}
 				autovar := lookup(callStack, "_", true, -1)
-				*autovar = *vret
+				fmt.Printf("vret: %v\n", vret)
+				if vret != nil {
+					*autovar = *vret
+				} else {
+					*autovar = value{IVAL, 0, 0.0, nil, nil}
+				}
 			}
 		}
 	}
