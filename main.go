@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/wendal/readline-go"
+	"github.com/peterh/liner"
+	"io"
 	"os"
 )
+
+var exitRequested = false
 
 func main() {
 	interactive := 1 /* 0: no, 1: maybe, 2: definitely */
@@ -46,17 +49,21 @@ func main() {
 		return
 	}
 
-	prompt := ""
+	ls := liner.NewLiner()
+	defer ls.Close()
 
 	varct := 0
 
 	for {
-		line := readline.ReadLine(&prompt)
-		if line == nil {
-			return
+		line, err := ls.Prompt("")
+		if err != nil {
+			if err != io.EOF {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+			}
+			break
 		}
 
-		program, perr := parseString(*line)
+		program, perr := parseString(line)
 		if perr != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", perr)
 			continue
@@ -97,9 +104,11 @@ func main() {
 				}
 			}
 		}
-	}
 
-	os.Exit(0)
+		if exitRequested {
+			break
+		}
+	}
 }
 
 func isVarLookup(program AstNode) (bool, string) {

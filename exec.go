@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 )
 
 type CallFrame struct {
@@ -256,7 +255,7 @@ func (n *DpyNode) Exec(callStack []CallFrame) *value {
 }
 
 func (n *ExitNode) Exec(callStack []CallFrame) *value {
-	os.Exit(0)
+	exitRequested = true
 	return &value{IVAL, 0, 0.0, nil, nil}
 }
 
