@@ -103,6 +103,7 @@ var HEXTOK = T("a hexadecimal number")
 var OCTTOK = T("an octal number")
 var KWDTOK = T("a keyword")
 var SYMTOK = T("any symbol")
+var DATETOK = T("a date constant")
 
 var PAROPTOK = T("(")
 var PARCLTOK = T(")")
@@ -112,60 +113,76 @@ var DPYSTMTOK = T("@")
 
 var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) + a2.Int(lineno), 0, nil, nil}
+		return &value{IVAL, a1.Int(lineno) + a2.Int(lineno), 0, nil, nil, nil}
 	}
-	return &value{DVAL, 0, a1.Real(lineno) + a2.Real(lineno), nil, nil}
+	if (a1.kind == IVAL) && (a2.kind == DTVAL) {
+		t := a2.dtval.AddDate(0, 0, int(a1.Int(lineno)))
+		return &value{DTVAL, 0, 0.0, nil, &t, nil}
+	}
+	if (a1.kind == DTVAL) && (a2.kind == IVAL) {
+		t := a1.dtval.AddDate(0, 0, int(a2.Int(lineno)))
+		return &value{DTVAL, 0, 0.0, nil, &t, nil}
+	}
+	return &value{DVAL, 0, a1.Real(lineno) + a2.Real(lineno), nil, nil, nil}
 })
 
 var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) - a2.Int(lineno), 0, nil, nil}
+		return &value{IVAL, a1.Int(lineno) - a2.Int(lineno), 0, nil, nil, nil}
 	}
-	return &value{DVAL, 0, a1.Real(lineno) - a2.Real(lineno), nil, nil}
+	if (a1.kind == DTVAL) && (a2.kind == DTVAL) {
+		d := a1.dtval.Sub(*a2.dtval)
+		return &value{IVAL, int64(d.Hours() / 24), 0, nil, nil, nil}
+	}
+	if (a1.kind == DTVAL) && (a2.kind == IVAL) {
+		t := a1.dtval.AddDate(0, 0, -int(a2.Int(lineno)))
+		return &value{DTVAL, 0, 0.0, nil, &t, nil}
+	}
+	return &value{DVAL, 0, a1.Real(lineno) - a2.Real(lineno), nil, nil, nil}
 },
 	func(a1 *value, lineno int) *value {
 		switch a1.kind {
 		case IVAL:
-			return &value{IVAL, -a1.ival, 0, nil, nil}
+			return &value{IVAL, -a1.ival, 0, nil, nil, nil}
 		case DVAL:
-			return &value{DVAL, 0, -a1.dval, nil, nil}
+			return &value{DVAL, 0, -a1.dval, nil, nil, nil}
 		}
 		panic(fmt.Errorf("Can not apply operator to non-numer value at line %d", lineno))
 	})
 
 var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, lineno int) *value {
 	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) * a2.Int(lineno), 0, nil, nil}
+		return &value{IVAL, a1.Int(lineno) * a2.Int(lineno), 0, nil, nil, nil}
 	}
-	return &value{DVAL, 0, a1.Real(lineno) * a2.Real(lineno), nil, nil}
+	return &value{DVAL, 0, a1.Real(lineno) * a2.Real(lineno), nil, nil, nil}
 })
 
 var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{DVAL, 0, a1.Real(lineno) / a2.Real(lineno), nil, nil}
+	return &value{DVAL, 0, a1.Real(lineno) / a2.Real(lineno), nil, nil, nil}
 })
 
 var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) % a2.Int(lineno), 0, nil, nil}
+	return &value{IVAL, a1.Int(lineno) % a2.Int(lineno), 0, nil, nil, nil}
 })
 
 var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{DVAL, 0, math.Pow(a1.Real(lineno), a2.Real(lineno)), nil, nil}
+	return &value{DVAL, 0, math.Pow(a1.Real(lineno), a2.Real(lineno)), nil, nil, nil}
 })
 
 var OROPTOK = TOp2("||", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Bool(lineno) || a2.Bool(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Bool(lineno) || a2.Bool(lineno)), 0, nil, nil, nil}
 })
 
 var BWOROPTOK = TOp2("|", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) | a2.Int(lineno), 0, nil, nil}
+	return &value{IVAL, a1.Int(lineno) | a2.Int(lineno), 0, nil, nil, nil}
 })
 
 var ANDOPTOK = TOp2("&&", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Bool(lineno) && a2.Bool(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Bool(lineno) && a2.Bool(lineno)), 0, nil, nil, nil}
 })
 
 var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) & a2.Int(lineno), 0, nil, nil}
+	return &value{IVAL, a1.Int(lineno) & a2.Int(lineno), 0, nil, nil, nil}
 })
 
 var INCOPTOK = TOp("++", -1, func(a1 *value, lineno int) *value {
@@ -197,31 +214,31 @@ var NEGOPTOK = TOp("!", -1, func(a1 *value, lineno int) *value {
 	if a1.kind != IVAL {
 		panic(fmt.Errorf("Can not negate non-integer value at line %d", lineno))
 	}
-	return &value{IVAL, asInt(!(a1.ival != 0)), 0, nil, nil}
+	return &value{IVAL, asInt(!(a1.ival != 0)), 0, nil, nil, nil}
 })
 
 var EQOPTOK = TOp2("==", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) == a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) == a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var GEOPTOK = TOp2X("ge", ">=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) >= a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) >= a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var GTOPTOK = TOp2X("gt", ">", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) > a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) > a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var LEOPTOK = TOp2X("le", "<=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) <= a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) <= a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var LTOPTOK = TOp2X("lt", "<", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) < a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) < a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var NEOPTOK = TOp2("!=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) != a2.Real(lineno)), 0, nil, nil}
+	return &value{IVAL, asInt(a1.Real(lineno) != a2.Real(lineno)), 0, nil, nil, nil}
 })
 
 var SETOPTOK = TSetOp("=", nil)

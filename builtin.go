@@ -13,121 +13,121 @@ func intAbs(x int64) int64 {
 	return x
 }
 
-var btnAbs = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnAbs = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
 		switch argv[0].kind {
 		case IVAL:
-			return &value{IVAL, intAbs(argv[0].ival), 0, nil, nil}
+			return &value{IVAL, intAbs(argv[0].ival), 0, nil, nil, nil}
 		case DVAL:
-			return &value{DVAL, 0, math.Abs(argv[0].dval), nil, nil}
+			return &value{DVAL, 0, math.Abs(argv[0].dval), nil, nil, nil}
 		}
 		panic(fmt.Errorf("Can not apply abs to non-number value"))
 	},
 }}
 
-var btnAcos = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnAcos = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Acos(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Acos(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnAsin = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnAsin = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Asin(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Asin(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnAtan = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnAtan = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Atan(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Atan(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnCos = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnCos = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Cos(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Cos(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnCosh = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnCosh = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Cosh(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Cosh(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnFloor = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnFloor = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{IVAL, int64(math.Floor(argv[0].Real(lineno))), 0, nil, nil}
+		return &value{IVAL, int64(math.Floor(argv[0].Real(lineno))), 0, nil, nil, nil}
 	},
 }}
 
-var btnCeil = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnCeil = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{IVAL, int64(math.Ceil(argv[0].Real(lineno))), 0, nil, nil}
+		return &value{IVAL, int64(math.Ceil(argv[0].Real(lineno))), 0, nil, nil, nil}
 	},
 }}
 
-var btnLn = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnLn = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Log(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Log(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnLog10 = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnLog10 = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Log10(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Log10(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnLog2 = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnLog2 = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Log2(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Log2(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnSin = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnSin = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Sin(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Sin(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnSinh = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnSinh = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Sinh(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Sinh(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnSqrt = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnSqrt = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Sqrt(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Sqrt(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnTan = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnTan = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Tan(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Tan(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
-var btnTanh = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnTanh = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
-		return &value{DVAL, 0, math.Tanh(argv[0].Real(lineno)), nil, nil}
+		return &value{DVAL, 0, math.Tanh(argv[0].Real(lineno)), nil, nil, nil}
 	},
 }}
 
@@ -162,7 +162,7 @@ func binaryPrint(x uint64) {
 	//fmt.Printf("\n")
 }
 
-var btnDpy = &value{BVAL, 0, 0, nil, &BuiltinFn{
+var btnDpy = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
 		var x uint64
@@ -191,10 +191,13 @@ var btnDpy = &value{BVAL, 0, 0, nil, &BuiltinFn{
 		case BVAL:
 			fmt.Printf("builtin\n")
 
+		case DTVAL:
+			fmt.Printf("%s\n", argv[0].String())
+
 		default:
 			fmt.Printf("not a number\n")
 		}
 
-		return &value{IVAL, 0, 0, nil, nil}
+		return &value{IVAL, 0, 0, nil, nil, nil}
 	},
 }}

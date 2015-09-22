@@ -197,7 +197,7 @@ func (n *SetOpNode) Exec(stack []CallFrame) *value {
 }
 
 func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
-	vv = &value{IVAL, 0, 0.0, nil, nil}
+	vv = &value{IVAL, 0, 0.0, nil, nil, nil}
 	for {
 		gv := n.guard.Exec(stack)
 		if !gv.Bool(n.guard.Line()) {
@@ -209,7 +209,7 @@ func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
 }
 
 func (n *ForNode) Exec(stack []CallFrame) (vv *value) {
-	vv = &value{IVAL, 0, 0.0, nil, nil}
+	vv = &value{IVAL, 0, 0.0, nil, nil, nil}
 
 	n.initExpr.Exec(stack)
 
@@ -235,12 +235,12 @@ func (n *IfNode) Exec(stack []CallFrame) *value {
 			return n.elseBody.Exec(stack)
 		}
 	}
-	return &value{IVAL, 0, 0, nil, nil}
+	return &value{IVAL, 0, 0, nil, nil, nil}
 }
 
 func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	frame := stack[len(stack)-1]
-	vv := &value{PVAL, 0, 0, n, nil}
+	vv := &value{PVAL, 0, 0, n, nil, nil}
 	frame.vars[n.name] = vv
 	return vv
 }
@@ -256,7 +256,7 @@ func (n *DpyNode) Exec(callStack []CallFrame) *value {
 
 func (n *ExitNode) Exec(callStack []CallFrame) *value {
 	exitRequested = true
-	return &value{IVAL, 0, 0.0, nil, nil}
+	return &value{IVAL, 0, 0.0, nil, nil, nil}
 }
 
 func asInt(x bool) int64 {
@@ -301,6 +301,8 @@ func (vv *value) String() string {
 		return fmt.Sprintf("%d", vv.ival)
 	case DVAL:
 		return fmt.Sprintf("%g", vv.dval)
+	case DTVAL:
+		return vv.dtval.Format("20060102")
 	}
 	return fmt.Sprintf("@")
 }

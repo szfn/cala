@@ -16,7 +16,7 @@ func tokEqual(t *testing.T, tt []token, te []token) {
 		}
 
 		if tt[i].val != te[i].val {
-			t.Fatalf("Value mismatch at token %d: %v %v\n", i, tt[i], te[i])
+			t.Fatalf("Value mismatch at token %d: %s %s\n", i, tt[i].val, te[i].val)
 		}
 
 		if tt[i].lineno != te[i].lineno {
@@ -152,6 +152,17 @@ func TestLexerOk5(t *testing.T) {
 		{NEGOPTOK, "!", 1},
 		{SYMTOK, "x", 1},
 		{INCOPTOK, "++", 1},
+		{EOFTOK, "", 1},
+	}
+
+	tokens := lexAll(strings.NewReader(s))
+	tokEqual(t, tokens, expected)
+}
+
+func TestDateToks(t *testing.T) {
+	s := "$20150101"
+	expected := []token{
+		{DATETOK, "20150101", 1},
 		{EOFTOK, "", 1},
 	}
 

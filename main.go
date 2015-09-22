@@ -100,7 +100,7 @@ func main() {
 				if vret != nil {
 					*autovar = *vret
 				} else {
-					*autovar = value{IVAL, 0, 0.0, nil, nil}
+					*autovar = value{IVAL, 0, 0.0, nil, nil, nil}
 				}
 			}
 		}

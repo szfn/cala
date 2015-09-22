@@ -223,6 +223,26 @@ func lxNumber(lx *lexer) lexerStateFn {
 	panic(fmt.Errorf("Unreachable"))
 }
 
+// Reads a date (it's just a sequence of numbers
+func lxDate(lx *lexer) lexerStateFn {
+	c, _, err := lx.input.ReadRune()
+	if lx.lerror(err) {
+		return nil
+	}
+
+	switch c {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		lx.acc = append(lx.acc, c)
+		return lxDate
+
+	default:
+		lx.emit(DATETOK, string(lx.acc))
+		return toBase1(lx, c, false)
+	}
+
+	panic(fmt.Errorf("Unreachable"))
+}
+
 // Reads an hexadecimal number
 func lxHex(lx *lexer) lexerStateFn {
 	for {
@@ -308,6 +328,15 @@ func lxBase1(lx *lexer) lexerStateFn {
 		if lx.acceptNonsyn {
 			lx.acc = []rune{'.'}
 			return lxRealFrac
+		} else {
+			lx.syntaxError(c)
+			return nil
+		}
+
+	case '$':
+		if lx.acceptNonsyn {
+			lx.acc = []rune{}
+			return lxDate
 		} else {
 			lx.syntaxError(c)
 			return nil

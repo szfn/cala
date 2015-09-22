@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type valueKind int
 
 const (
-	IVAL valueKind = iota // integer
-	DVAL                  // double
-	PVAL                  // a subprogram
-	BVAL                  // a builtin function
+	IVAL  valueKind = iota // integer
+	DVAL                   // double
+	PVAL                   // a subprogram
+	BVAL                   // a builtin function
+	DTVAL                  // date
 )
 
 type BuiltinFn struct {
@@ -19,11 +21,12 @@ type BuiltinFn struct {
 }
 
 type value struct {
-	kind valueKind
-	ival int64
-	dval float64
-	nval *FnDefNode
-	bval *BuiltinFn
+	kind  valueKind
+	ival  int64
+	dval  float64
+	nval  *FnDefNode
+	dtval *time.Time
+	bval  *BuiltinFn
 }
 
 type AstNode interface {
@@ -114,6 +117,14 @@ func NewConstNode(kind valueKind, ival int64, dval float64, lineno int) *ConstNo
 	r.v.kind = kind
 	r.v.ival = ival
 	r.v.dval = dval
+	r.lineno = lineno
+	return r
+}
+
+func NewDateNode(t time.Time, lineno int) *ConstNode {
+	r := &ConstNode{}
+	r.v.kind = DTVAL
+	r.v.dtval = &t
 	r.lineno = lineno
 	return r
 }
