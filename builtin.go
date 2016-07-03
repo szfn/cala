@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strings"
@@ -162,6 +163,25 @@ func binaryPrint(x uint64) {
 	//fmt.Printf("\n")
 }
 
+func bitfield(x uint64) string {
+	var buf bytes.Buffer
+	first := true
+
+	for i := 0; i < 64; i++ {
+		bit := (x & 0x01)
+		x >>= 1
+		if bit != 0 {
+			if !first {
+				fmt.Fprintf(&buf, "|")
+			}
+			first = false
+			fmt.Fprintf(&buf, "_BV(%d)", i)
+		}
+	}
+
+	return buf.String()
+}
+
 var btnDpy = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 	nargs: 1,
 	fn: func(argv []*value, lineno int) *value {
@@ -175,6 +195,7 @@ var btnDpy = &value{BVAL, 0, 0, nil, nil, &BuiltinFn{
 			fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", x)))
 			fmt.Printf("bin =\n")
 			binaryPrint(x)
+			fmt.Printf("bitfield = %s\n", bitfield(x))
 
 		case DVAL:
 			fmt.Printf("float\n")
