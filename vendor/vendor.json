@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "i8KS96zyCztA4003YeqcAmpcXXs=",
+			"path": "github.com/peterh/liner",
+			"revision": "8975875355a81d612fafb9f5a6037bdcc2d9b073",
+			"revisionTime": "2016-06-15T11:30:19Z"
+		}
+	],
+	"rootPath": "cala"
+}
