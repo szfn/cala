@@ -65,6 +65,11 @@ func main() {
 			break
 		}
 
+		if line == "help" {
+			btnHelp.bval.fn(nil, 0)
+			continue
+		}
+
 		program, perr := parseString(line)
 		if perr != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", perr)

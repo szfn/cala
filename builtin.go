@@ -106,25 +106,24 @@ func bitfield(x uint64) string {
 }
 
 var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	var x uint64
 	switch argv[0].kind {
 	case IVAL:
 		fmt.Printf("integer\n")
-		fmt.Printf("dec = %d\n", argv[0].ival)
-		fmt.Printf("oct = %o\n", argv[0].ival)
+		fmt.Printf("dec = %d\n", &argv[0].ival)
+		fmt.Printf("oct = %o\n", &argv[0].ival)
 		if argv[0].ival.BitLen() <= 64 {
 			fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", &argv[0].ival)))
+			fmt.Printf("bin =\n")
+			binaryPrint(argv[0].ival.Uint64())
+			fmt.Printf("bitfield = %s\n", bitfield(argv[0].ival.Uint64()))
 		} else {
 			fmt.Printf("hex = %X", &argv[0].ival)
 		}
-		fmt.Printf("bin =\n")
-		binaryPrint(argv[0].ival.Uint64())
-		fmt.Printf("bitfield = %s\n", bitfield(x))
 
 	case DVAL:
 		fmt.Printf("float\n")
 		fmt.Printf("dec = %g\n", argv[0].dval)
-		x = math.Float64bits(argv[0].dval)
+		x := math.Float64bits(argv[0].dval)
 		fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", x)))
 		fmt.Printf("bin =\n")
 		binaryPrint(x)
@@ -143,5 +142,33 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 		fmt.Printf("not a number\n")
 	}
 
+	return newZeroVal(IVAL, DECFLV)
+})
+
+var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
+	fmt.Printf("Type any expression to calculate the return value\n")
+	fmt.Printf("\n")
+	fmt.Printf("OPERATORS:\n")
+	fmt.Printf("+ - * /\t\tNormal arithmetic operators\n")
+	fmt.Printf("%%\t\tModulo\n")
+	fmt.Printf("**\t\tPower\n")
+	fmt.Printf("|| && !\t\tLogical operators\n")
+	fmt.Printf("| &\t\tBitwise logical operators\n")
+	fmt.Printf("== != < <= >= >\tComparison operators\n")
+	fmt.Printf("var = expr\tAssigns the result of expr to var\n")
+	fmt.Printf("var op= expr\tShorthand for var = var op expr\n")
+	fmt.Printf("@ var\t\tDetailed variable view\n")
+	fmt.Printf("\n")
+	fmt.Printf("BUILTIN FUNCTIONS:\n")
+	fmt.Printf("abs\tacos\tasin\tatan\n")
+	fmt.Printf("cos\tcosh\tfloor\tceil\n")
+	fmt.Printf("ln\tlog10\tlog2\tsin\n")
+	fmt.Printf("sin\tsinh\tsqrt\ttan\n")
+	fmt.Printf("tanh\n")
+	fmt.Printf("\n")
+	fmt.Printf("DATES:\n")
+	fmt.Printf("Date literals are declared with $yyyymmdd for example $20160101 is 2016-01-01, integers can be added to and subtracted from dates\n")
+
+	//TODO: describe how dates work
 	return newZeroVal(IVAL, DECFLV)
 })
