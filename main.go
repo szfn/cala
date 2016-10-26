@@ -9,6 +9,7 @@ import (
 	"github.com/peterh/liner"
 )
 
+var programmerMode = false
 var exitRequested = false
 
 func main() {
@@ -103,7 +104,6 @@ func main() {
 					varct++
 				}
 				autovar := lookup(callStack, "_", true, -1)
-				fmt.Printf("vret: %v\n", vret)
 				if vret != nil {
 					*autovar = *vret
 				} else {

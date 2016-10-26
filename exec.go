@@ -256,8 +256,13 @@ func (n *NilNode) Exec(callStack []CallFrame) *value {
 }
 
 func (n *DpyNode) Exec(callStack []CallFrame) *value {
-	v := n.expr.Exec(callStack)
-	return btnDpy.bval.fn([]*value{v}, n.lineno)
+	if n.toggleProg {
+		programmerMode = true
+		return newZeroVal(IVAL, DECFLV)
+	} else {
+		v := n.expr.Exec(callStack)
+		return btnDpy.bval.fn([]*value{v}, n.lineno)
+	}
 }
 
 func (n *ExitNode) Exec(callStack []CallFrame) *value {

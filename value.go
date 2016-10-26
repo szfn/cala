@@ -79,16 +79,24 @@ func (vv *value) String() string {
 	case IVAL:
 		switch vv.flavor {
 		case HEXFLV:
-			return fmt.Sprintf("%#x", &vv.ival)
+			if programmerMode {
+				return fmt.Sprintf("%d\t%#x", &vv.ival, &vv.ival)
+			} else {
+				return fmt.Sprintf("%#x", &vv.ival)
+			}
 		case OCTFLV:
 			return fmt.Sprintf("%#o", &vv.ival)
 		default:
-			return vv.ival.String()
+			if programmerMode {
+				return fmt.Sprintf("%d\t%#x", &vv.ival, &vv.ival)
+			} else {
+				return vv.ival.String()
+			}
 		}
 	case DVAL:
 		return fmt.Sprintf("%g", vv.dval)
 	case DTVAL:
-		return vv.dtval.Format("20060102")
+		return "$" + vv.dtval.Format("20060102")
 	}
 	return fmt.Sprintf("@")
 }

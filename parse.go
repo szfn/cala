@@ -265,14 +265,26 @@ func parseFor(ts *tokenStream, lineno int) AstNode {
 // Parses a display statement (it's either followed by an expression or the end of the statement)
 func parseDpy(ts *tokenStream, lineno int) AstNode {
 	tok := ts.get()
-	if tok.ttype == SCOLTOK || tok.ttype == EOFTOK {
+	switch tok.ttype {
+	case SCOLTOK, EOFTOK:
 		ts.rewind(tok)
-		return &DpyNode{NewVarNode("_", lineno), lineno}
+		return &DpyNode{NewVarNode("_", lineno), false, lineno}
+	case COLONTOK:
+		tok = ts.get()
+		if tok.ttype != SYMTOK {
+			unexpectedToken(tok, " (while parsing display statement)")
+		}
+		switch tok.val {
+		case "p":
+			return &DpyNode{nil, true, lineno}
+		default:
+			unexpectedToken(tok, " (while parsing display statement)")
+		}
 	}
 
 	ts.rewind(tok)
 	expr := parseExpression(ts)
-	return &DpyNode{expr, lineno}
+	return &DpyNode{expr, false, lineno}
 }
 
 func parseExit(ts *tokenStream, lineno int) AstNode {

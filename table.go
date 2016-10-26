@@ -111,6 +111,7 @@ var PARCLTOK = T(")")
 var CRLOPTOK = T("{")
 var CRLCLTOK = T("}")
 var DPYSTMTOK = T("@")
+var COLONTOK = T(":")
 
 func sortDtval(a1, a2 *value) (b1, b2 *value) {
 	if a1.kind == DTVAL {

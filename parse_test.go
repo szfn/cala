@@ -147,3 +147,15 @@ func TestParseMulDiv(t *testing.T) {
 		"2 * 11/25",
 		"BodyNode<[BinOpNode<*, ConstNode<0, 2, 0>, BinOpNode</, ConstNode<0, 11, 0>, ConstNode<0, 25, 0>>>]>")
 }
+
+func TestAtSyntax(t *testing.T) {
+	matchAst(t,
+		"@",
+		"BodyNode<[DpyNode<VarNode<_>>]>")
+	matchAst(t,
+		"@ p",
+		"BodyNode<[DpyNode<VarNode<p>>]>")
+	matchAst(t,
+		"@:p",
+		"BodyNode<[DpyNode<toggleProg>]>")
+}

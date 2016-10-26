@@ -263,12 +263,17 @@ func (n *NilNode) Line() int {
 }
 
 type DpyNode struct {
-	expr   AstNode
-	lineno int
+	expr       AstNode
+	toggleProg bool
+	lineno     int
 }
 
 func (n *DpyNode) String() string {
-	return fmt.Sprintf("DpyNode<%s>", n.expr)
+	if n.toggleProg {
+		return "DpyNode<toggleProg>"
+	} else {
+		return fmt.Sprintf("DpyNode<%s>", n.expr)
+	}
 }
 
 func (n *DpyNode) Line() int {
