@@ -102,7 +102,7 @@ func main() {
 				if vret != nil {
 					*autovar = *vret
 				} else {
-					*autovar = value{IVAL, big.Int{}, 0.0, nil, nil, nil}
+					*autovar = *newZeroVal(IVAL, DECFLV)
 				}
 			}
 		}

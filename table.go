@@ -126,7 +126,7 @@ func badtype(name string, lineno int) error {
 var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL)
+		v := newZeroVal(IVAL, a1.flavor)
 		v.ival.Add(a1.Int(lineno), a2.Int(lineno))
 		return v
 
@@ -144,7 +144,7 @@ var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *val
 var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL)
+		v := newZeroVal(IVAL, a1.flavor)
 		v.ival.Sub(a1.Int(lineno), a2.Int(lineno))
 		return v
 	case DVAL:
@@ -159,7 +159,7 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 	func(a1 *value, lineno int) *value {
 		switch a1.kind {
 		case IVAL:
-			v := newZeroVal(IVAL)
+			v := newZeroVal(IVAL, a1.flavor)
 			v.ival.Neg(&a1.ival)
 			return v
 		case DVAL:
@@ -172,7 +172,7 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL)
+		v := newZeroVal(IVAL, a1.flavor)
 		v.ival.Mul(a1.Int(lineno), a2.Int(lineno))
 		return v
 	case DVAL:
@@ -187,7 +187,7 @@ var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, kind valueKind, lineno int) *val
 })
 
 var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL)
+	v := newZeroVal(IVAL, a1.flavor)
 	v.ival.Mod(a1.Int(lineno), a2.Int(lineno))
 	return v
 })
@@ -198,7 +198,7 @@ var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *va
 		if a2.Int(lineno).Cmp(&big.Int{}) < 0 {
 			return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
 		} else {
-			v := newZeroVal(IVAL)
+			v := newZeroVal(IVAL, a1.flavor)
 			v.ival.Exp(a1.Int(lineno), a2.Int(lineno), nil)
 			return v
 		}
@@ -214,7 +214,7 @@ var OROPTOK = TOp2("||", 1, func(a1, a2 *value, kind valueKind, lineno int) *val
 })
 
 var BWOROPTOK = TOp2("|", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL)
+	v := newZeroVal(IVAL, a1.flavor)
 	v.ival.Or(a1.Int(lineno), a2.Int(lineno))
 	return v
 })
@@ -224,7 +224,7 @@ var ANDOPTOK = TOp2("&&", 1, func(a1, a2 *value, kind valueKind, lineno int) *va
 })
 
 var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL)
+	v := newZeroVal(IVAL, a1.flavor)
 	v.ival.And(a1.Int(lineno), a2.Int(lineno))
 	return v
 })

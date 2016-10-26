@@ -40,6 +40,14 @@ func testExecInt(t *testing.T, s string, tgt int64) {
 	}
 }
 
+func testExecPrint(t *testing.T, s string, tgt string) {
+	v := execString(t, s)
+	if v.String() != tgt {
+		fmt.Printf("Program:\n%s\n", s)
+		t.Fatalf("Output value mismatch %q (expected: %q)\n", v.String(), tgt)
+	}
+}
+
 func TestExecOps(t *testing.T) {
 	// reals
 	testExecReal(t, "10.2", 10.2)
@@ -148,6 +156,15 @@ func TestExecArithmeticBook(t *testing.T) {
 	testExecInt(t, "9 + 6 * (8 - 5)", 27)
 	testExecReal(t, " (14 - 5) / (9 - 6)", 3.0)
 	testExecReal(t, "5 * 8 + 6 / 6 - 12 * 2", 17.0)
+}
+
+func TestExecFlavorPermanence(t *testing.T) {
+	testExecPrint(t, "16", "16")
+	testExecPrint(t, "0x16", "0x16")
+	testExecPrint(t, "011", "011")
+	testExecPrint(t, "0x16 + 1", "0x17")
+	testExecPrint(t, "1 + 0x16", "23")
+	testExecPrint(t, "0x1 + 0x16", "0x17")
 }
 
 func TestExecStatement(t *testing.T) {

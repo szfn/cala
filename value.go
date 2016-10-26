@@ -7,15 +7,16 @@ import (
 )
 
 type value struct {
-	kind  valueKind
-	ival  big.Int
-	dval  float64
-	nval  *FnDefNode
-	dtval *time.Time
-	bval  *BuiltinFn
+	kind   valueKind
+	flavor valueFlavor
+	ival   big.Int
+	dval   float64
+	nval   *FnDefNode
+	dtval  *time.Time
+	bval   *BuiltinFn
 }
 
-type valueKind int
+type valueKind uint8
 
 const (
 	IVAL  valueKind = iota // integer
@@ -25,20 +26,28 @@ const (
 	DTVAL                  // date
 )
 
-func newZeroVal(kind valueKind) *value {
-	return &value{kind, big.Int{}, 0, nil, nil, nil}
+type valueFlavor uint8
+
+const (
+	DECFLV valueFlavor = iota
+	OCTFLV
+	HEXFLV
+)
+
+func newZeroVal(kind valueKind, flavor valueFlavor) *value {
+	return &value{kind, flavor, big.Int{}, 0, nil, nil, nil}
 }
 
 func newDateval(t time.Time) *value {
-	return &value{DTVAL, big.Int{}, 0, nil, &t, nil}
+	return &value{DTVAL, DECFLV, big.Int{}, 0, nil, &t, nil}
 }
 
 func newFloatval(x float64) *value {
-	return &value{DVAL, big.Int{}, x, nil, nil, nil}
+	return &value{DVAL, DECFLV, big.Int{}, x, nil, nil, nil}
 }
 
 func newBoolval(b bool) *value {
-	v := newZeroVal(IVAL)
+	v := newZeroVal(IVAL, DECFLV)
 	if b {
 		v.ival = *big.NewInt(1)
 	}
@@ -46,7 +55,7 @@ func newBoolval(b bool) *value {
 }
 
 func makeFuncValue(nargs int, fn BuiltinFunc) *value {
-	return &value{BVAL, big.Int{}, 0, nil, nil, &BuiltinFn{nargs: nargs, fn: fn}}
+	return &value{BVAL, DECFLV, big.Int{}, 0, nil, nil, &BuiltinFn{nargs: nargs, fn: fn}}
 }
 
 func resultKind(a1, a2 *value) valueKind {
@@ -68,7 +77,14 @@ func resultKind(a1, a2 *value) valueKind {
 func (vv *value) String() string {
 	switch vv.kind {
 	case IVAL:
-		return vv.ival.String()
+		switch vv.flavor {
+		case HEXFLV:
+			return fmt.Sprintf("%#x", &vv.ival)
+		case OCTFLV:
+			return fmt.Sprintf("%#o", &vv.ival)
+		default:
+			return vv.ival.String()
+		}
 	case DVAL:
 		return fmt.Sprintf("%g", vv.dval)
 	case DTVAL:

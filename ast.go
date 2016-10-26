@@ -96,9 +96,10 @@ type ConstNode struct {
 	lineno int
 }
 
-func NewConstNode(kind valueKind, ival int64, dval float64, lineno int) *ConstNode {
+func NewConstNode(kind valueKind, flavor valueFlavor, ival int64, dval float64, lineno int) *ConstNode {
 	r := &ConstNode{}
 	r.v.kind = kind
+	r.v.flavor = flavor
 	r.v.ival = *big.NewInt(ival)
 	r.v.dval = dval
 	r.lineno = lineno

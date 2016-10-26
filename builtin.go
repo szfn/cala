@@ -18,71 +18,41 @@ func intAbs(x int64) int64 {
 var btnAbs = makeFuncValue(1, func(argv []*value, lineno int) *value {
 	switch argv[0].kind {
 	case IVAL:
-		return &value{IVAL, *argv[0].ival.Abs(&argv[0].ival), 0, nil, nil, nil}
+		v := newZeroVal(IVAL, argv[0].flavor)
+		v.ival.Abs(&argv[0].ival)
+		return v
 	case DVAL:
-		return &value{DVAL, big.Int{}, math.Abs(argv[0].dval), nil, nil, nil}
+		return newFloatval(math.Abs(argv[0].dval))
 	}
 	panic(fmt.Errorf("Can not apply abs to non-number value"))
 })
 
-var btnAcos = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Acos(argv[0].Real(lineno)), nil, nil, nil}
-})
+func makeFloatFuncValue(fn func(float64) float64) *value {
+	return makeFuncValue(1, func(argv []*value, lineno int) *value {
+		return newFloatval(fn(argv[0].Real(lineno)))
+	})
+}
 
-var btnAsin = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Asin(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnAtan = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Atan(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnCos = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Cos(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnCosh = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Cosh(argv[0].Real(lineno)), nil, nil, nil}
-})
+var btnAcos = makeFloatFuncValue(math.Acos)
+var btnAsin = makeFloatFuncValue(math.Asin)
+var btnAtan = makeFloatFuncValue(math.Atan)
+var btnCos = makeFloatFuncValue(math.Cos)
+var btnCosh = makeFloatFuncValue(math.Cosh)
+var btnLn = makeFloatFuncValue(math.Log)
+var btnLog10 = makeFloatFuncValue(math.Log10)
+var btnLog2 = makeFloatFuncValue(math.Log2)
+var btnSin = makeFloatFuncValue(math.Sin)
+var btnSinh = makeFloatFuncValue(math.Sinh)
+var btnSqrt = makeFloatFuncValue(math.Sqrt)
+var btnTan = makeFloatFuncValue(math.Tan)
+var btnTanh = makeFloatFuncValue(math.Tanh)
 
 var btnFloor = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{IVAL, *big.NewInt(int64(math.Floor(argv[0].Real(lineno)))), 0, nil, nil, nil}
+	return &value{IVAL, DECFLV, *big.NewInt(int64(math.Floor(argv[0].Real(lineno)))), 0, nil, nil, nil}
 })
 
 var btnCeil = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{IVAL, *big.NewInt(int64(math.Ceil(argv[0].Real(lineno)))), 0, nil, nil, nil}
-})
-
-var btnLn = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Log(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnLog10 = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Log10(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnLog2 = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Log2(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnSin = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Sin(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnSinh = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Sinh(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnSqrt = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Sqrt(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnTan = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Tan(argv[0].Real(lineno)), nil, nil, nil}
-})
-
-var btnTanh = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{DVAL, big.Int{}, math.Tanh(argv[0].Real(lineno)), nil, nil, nil}
+	return &value{IVAL, DECFLV, *big.NewInt(int64(math.Ceil(argv[0].Real(lineno)))), 0, nil, nil, nil}
 })
 
 func hexsplit(s string) string {
@@ -143,9 +113,9 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 		fmt.Printf("dec = %d\n", argv[0].ival)
 		fmt.Printf("oct = %o\n", argv[0].ival)
 		if argv[0].ival.BitLen() <= 64 {
-			fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", argv[0].ival)))
+			fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", &argv[0].ival)))
 		} else {
-			fmt.Printf("hex = %X", argv[0].ival)
+			fmt.Printf("hex = %X", &argv[0].ival)
 		}
 		fmt.Printf("bin =\n")
 		binaryPrint(argv[0].ival.Uint64())
@@ -173,5 +143,5 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 		fmt.Printf("not a number\n")
 	}
 
-	return &value{IVAL, big.Int{}, 0, nil, nil, nil}
+	return newZeroVal(IVAL, DECFLV)
 })

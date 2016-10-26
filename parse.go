@@ -461,7 +461,7 @@ func parseReal(s string, lineno int) AstNode {
 	if err != nil {
 		panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
 	}
-	return NewConstNode(DVAL, 0, v, lineno)
+	return NewConstNode(DVAL, DECFLV, 0, v, lineno)
 }
 
 // Parses an integer
@@ -470,7 +470,14 @@ func parseInt(s string, base, lineno int) AstNode {
 	if err != nil {
 		panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
 	}
-	return NewConstNode(IVAL, v, 0.0, lineno)
+	flavor := DECFLV
+	switch base {
+	case 16:
+		flavor = HEXFLV
+	case 8:
+		flavor = OCTFLV
+	}
+	return NewConstNode(IVAL, flavor, v, 0.0, lineno)
 }
 
 // Parses a date
