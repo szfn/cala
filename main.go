@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/peterh/liner"
 	"io"
+	"math/big"
 	"os"
+
+	"github.com/peterh/liner"
 )
 
 var exitRequested = false
@@ -77,7 +79,7 @@ func main() {
 		} else {
 			autonumberVar := lookup(callStack, "_autonumber", false, -1)
 			prn := func(varname string) bool {
-				if autonumberVar.ival != 0 {
+				if autonumberVar.ival.Cmp(&big.Int{}) != 0 {
 					fmt.Printf("= %-60s = %s\n", vret, varname)
 					return true
 				} else {
@@ -100,7 +102,7 @@ func main() {
 				if vret != nil {
 					*autovar = *vret
 				} else {
-					*autovar = value{IVAL, 0, 0.0, nil, nil, nil}
+					*autovar = value{IVAL, big.Int{}, 0.0, nil, nil, nil}
 				}
 			}
 		}

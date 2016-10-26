@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 )
 
@@ -18,9 +19,9 @@ type tokenTypeDef struct {
 
 	IsSetOperator bool // is set operator (=, +=, -=, etc)
 
-	Priority int                              // operator priority, set to -1 for non-operators
-	BinFn    func(*value, *value, int) *value // for binary operators this is the function called on execution
-	UniFn    func(*value, int) *value         // for unary operators this is the function called on execution
+	Priority int                      // operator priority, set to -1 for non-operators
+	BinFn    BinOpFunc                // for binary operators this is the function called on execution
+	UniFn    func(*value, int) *value // for unary operators this is the function called on execution
 
 	LexFollow []tokenType // lexing aid, if this operator is also the prefix for other tokens put the other tokens here
 }
@@ -62,7 +63,7 @@ func T(name string) tokenType {
 	return r
 }
 
-func TOp2(name string, priority int, binFn func(*value, *value, int) *value) tokenType {
+func TOp2(name string, priority int, binFn BinOpFunc) tokenType {
 	return TOp2X(name, name, priority, binFn)
 }
 
@@ -73,21 +74,21 @@ func TOp(name string, priority int, uniFn func(*value, int) *value) tokenType {
 	return r
 }
 
-func TSetOp(name string, binFn func(*value, *value, int) *value) tokenType {
+func TSetOp(name string, binFn BinOpFunc) tokenType {
 	r := &tokenTypeDef{nil, name, name, true, -1, binFn, nil, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
 }
 
-func TOp12(name string, priority int, binFn func(*value, *value, int) *value, uniFn func(*value, int) *value) tokenType {
+func TOp12(name string, priority int, binFn BinOpFunc, uniFn func(*value, int) *value) tokenType {
 	r := &tokenTypeDef{nil, name, name, false, priority, binFn, uniFn, nil}
 	r.Token = r
 	registerTokenType(r)
 	return r
 }
 
-func TOp2X(name, xname string, priority int, binFn func(*value, *value, int) *value) tokenType {
+func TOp2X(name, xname string, priority int, binFn BinOpFunc) tokenType {
 	r := &tokenTypeDef{nil, name, xname, false, priority, binFn, nil, nil}
 	r.Token = r
 	registerTokenType(r)
@@ -111,88 +112,131 @@ var CRLOPTOK = T("{")
 var CRLCLTOK = T("}")
 var DPYSTMTOK = T("@")
 
-var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, lineno int) *value {
-	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) + a2.Int(lineno), 0, nil, nil, nil}
+func sortDtval(a1, a2 *value) (b1, b2 *value) {
+	if a1.kind == DTVAL {
+		return a1, a2
 	}
-	if (a1.kind == IVAL) && (a2.kind == DTVAL) {
-		t := a2.dtval.AddDate(0, 0, int(a1.Int(lineno)))
-		return &value{DTVAL, 0, 0.0, nil, &t, nil}
+	return a2, a1
+}
+
+func badtype(name string, lineno int) error {
+	return fmt.Errorf("%d: can not apply %s to non-numeric value", lineno, name)
+}
+
+var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		v := newZeroVal(IVAL)
+		v.ival.Add(a1.Int(lineno), a2.Int(lineno))
+		return v
+
+	case DVAL:
+		return newFloatval(a1.Real(lineno) + a2.Real(lineno))
+
+	case DTVAL:
+		a1, a2 = sortDtval(a1, a2)
+		return newDateval(a1.dtval.AddDate(0, 0, int(a2.Int(lineno).Int64())))
+	default:
+		panic(badtype("+", lineno))
 	}
-	if (a1.kind == DTVAL) && (a2.kind == IVAL) {
-		t := a1.dtval.AddDate(0, 0, int(a2.Int(lineno)))
-		return &value{DTVAL, 0, 0.0, nil, &t, nil}
-	}
-	return &value{DVAL, 0, a1.Real(lineno) + a2.Real(lineno), nil, nil, nil}
 })
 
-var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, lineno int) *value {
-	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) - a2.Int(lineno), 0, nil, nil, nil}
+var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		v := newZeroVal(IVAL)
+		v.ival.Sub(a1.Int(lineno), a2.Int(lineno))
+		return v
+	case DVAL:
+		return newFloatval(a1.Real(lineno) - a2.Real(lineno))
+	case DTVAL:
+		a1, a2 = sortDtval(a1, a2)
+		return newDateval(a1.dtval.AddDate(0, 0, -int(a2.Int(lineno).Int64())))
+	default:
+		panic(badtype("-", lineno))
 	}
-	if (a1.kind == DTVAL) && (a2.kind == DTVAL) {
-		d := a1.dtval.Sub(*a2.dtval)
-		return &value{IVAL, int64(d.Hours() / 24), 0, nil, nil, nil}
-	}
-	if (a1.kind == DTVAL) && (a2.kind == IVAL) {
-		t := a1.dtval.AddDate(0, 0, -int(a2.Int(lineno)))
-		return &value{DTVAL, 0, 0.0, nil, &t, nil}
-	}
-	return &value{DVAL, 0, a1.Real(lineno) - a2.Real(lineno), nil, nil, nil}
 },
 	func(a1 *value, lineno int) *value {
 		switch a1.kind {
 		case IVAL:
-			return &value{IVAL, -a1.ival, 0, nil, nil, nil}
+			v := newZeroVal(IVAL)
+			v.ival.Neg(&a1.ival)
+			return v
 		case DVAL:
-			return &value{DVAL, 0, -a1.dval, nil, nil, nil}
+			return newFloatval(-a1.dval)
+		default:
+			panic(badtype("-", lineno))
 		}
-		panic(fmt.Errorf("Can not apply operator to non-numer value at line %d", lineno))
 	})
 
-var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, lineno int) *value {
-	if (a1.kind == IVAL) && (a2.kind == IVAL) {
-		return &value{IVAL, a1.Int(lineno) * a2.Int(lineno), 0, nil, nil, nil}
+var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		v := newZeroVal(IVAL)
+		v.ival.Mul(a1.Int(lineno), a2.Int(lineno))
+		return v
+	case DVAL:
+		return newFloatval(a1.Real(lineno) * a2.Real(lineno))
+	default:
+		panic(badtype("*", lineno))
 	}
-	return &value{DVAL, 0, a1.Real(lineno) * a2.Real(lineno), nil, nil, nil}
 })
 
-var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{DVAL, 0, a1.Real(lineno) / a2.Real(lineno), nil, nil, nil}
+var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	return newFloatval(a1.Real(lineno) / a2.Real(lineno))
 })
 
-var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) % a2.Int(lineno), 0, nil, nil, nil}
+var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	v := newZeroVal(IVAL)
+	v.ival.Mod(a1.Int(lineno), a2.Int(lineno))
+	return v
 })
 
-var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, lineno int) *value {
-	return &value{DVAL, 0, math.Pow(a1.Real(lineno), a2.Real(lineno)), nil, nil, nil}
+var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		if a2.Int(lineno).Cmp(&big.Int{}) < 0 {
+			return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+		} else {
+			v := newZeroVal(IVAL)
+			v.ival.Exp(a1.Int(lineno), a2.Int(lineno), nil)
+			return v
+		}
+	case DVAL:
+		return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+	default:
+		panic(badtype("**", lineno))
+	}
 })
 
-var OROPTOK = TOp2("||", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Bool(lineno) || a2.Bool(lineno)), 0, nil, nil, nil}
+var OROPTOK = TOp2("||", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	return newBoolval(a1.Bool(lineno) || a2.Bool(lineno))
 })
 
-var BWOROPTOK = TOp2("|", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) | a2.Int(lineno), 0, nil, nil, nil}
+var BWOROPTOK = TOp2("|", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	v := newZeroVal(IVAL)
+	v.ival.Or(a1.Int(lineno), a2.Int(lineno))
+	return v
 })
 
-var ANDOPTOK = TOp2("&&", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Bool(lineno) && a2.Bool(lineno)), 0, nil, nil, nil}
+var ANDOPTOK = TOp2("&&", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	return newBoolval(a1.Bool(lineno) && a2.Bool(lineno))
 })
 
-var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, a1.Int(lineno) & a2.Int(lineno), 0, nil, nil, nil}
+var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	v := newZeroVal(IVAL)
+	v.ival.And(a1.Int(lineno), a2.Int(lineno))
+	return v
 })
 
 var INCOPTOK = TOp("++", -1, func(a1 *value, lineno int) *value {
 	switch a1.kind {
 	case IVAL:
-		a1.ival++
+		a1.ival.Add(&a1.ival, big.NewInt(1))
 	case DVAL:
 		a1.dval++
 	default:
-		panic(fmt.Errorf("Can not increment function variable at line %d", lineno))
+		panic(badtype("++", lineno))
 	}
 	vv := *a1
 	return &vv
@@ -200,11 +244,11 @@ var INCOPTOK = TOp("++", -1, func(a1 *value, lineno int) *value {
 var DECOPTOK = TOp("--", -1, func(a1 *value, lineno int) *value {
 	switch a1.kind {
 	case IVAL:
-		a1.ival--
+		a1.ival.Sub(&a1.ival, big.NewInt(1))
 	case DVAL:
 		a1.dval--
 	default:
-		panic(fmt.Errorf("Can not decrement function variable at line %d", lineno))
+		panic(badtype("--", lineno))
 	}
 	vv := *a1
 	return &vv
@@ -212,33 +256,75 @@ var DECOPTOK = TOp("--", -1, func(a1 *value, lineno int) *value {
 
 var NEGOPTOK = TOp("!", -1, func(a1 *value, lineno int) *value {
 	if a1.kind != IVAL {
-		panic(fmt.Errorf("Can not negate non-integer value at line %d", lineno))
+		panic(badtype("!", lineno))
 	}
-	return &value{IVAL, asInt(!(a1.ival != 0)), 0, nil, nil, nil}
+	return newBoolval(a1.ival.Cmp(&big.Int{}) == 0)
 })
 
-var EQOPTOK = TOp2("==", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) == a2.Real(lineno)), 0, nil, nil, nil}
+var EQOPTOK = TOp2("==", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) == 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) == a2.Real(lineno))
+	default:
+		panic(badtype("==", lineno))
+	}
 })
 
-var GEOPTOK = TOp2X("ge", ">=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) >= a2.Real(lineno)), 0, nil, nil, nil}
+var GEOPTOK = TOp2X("ge", ">=", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) >= 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) >= a2.Real(lineno))
+	default:
+		panic(badtype(">=", lineno))
+	}
 })
 
-var GTOPTOK = TOp2X("gt", ">", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) > a2.Real(lineno)), 0, nil, nil, nil}
+var GTOPTOK = TOp2X("gt", ">", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) > 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) > a2.Real(lineno))
+	default:
+		panic(badtype(">", lineno))
+	}
 })
 
-var LEOPTOK = TOp2X("le", "<=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) <= a2.Real(lineno)), 0, nil, nil, nil}
+var LEOPTOK = TOp2X("le", "<=", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) <= 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) <= a2.Real(lineno))
+	default:
+		panic(badtype("<=", lineno))
+	}
 })
 
-var LTOPTOK = TOp2X("lt", "<", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) < a2.Real(lineno)), 0, nil, nil, nil}
+var LTOPTOK = TOp2X("lt", "<", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) < 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) < a2.Real(lineno))
+	default:
+		panic(badtype("<", lineno))
+	}
 })
 
-var NEOPTOK = TOp2("!=", 0, func(a1, a2 *value, lineno int) *value {
-	return &value{IVAL, asInt(a1.Real(lineno) != a2.Real(lineno)), 0, nil, nil, nil}
+var NEOPTOK = TOp2("!=", 0, func(a1, a2 *value, kind valueKind, lineno int) *value {
+	switch kind {
+	case IVAL:
+		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) != 0)
+	case DVAL:
+		return newBoolval(a1.Real(lineno) != a2.Real(lineno))
+	default:
+		panic(badtype("!=", lineno))
+	}
 })
 
 var SETOPTOK = TSetOp("=", nil)

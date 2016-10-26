@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
+	"math/big"
+	"strconv"
 )
 
 type CallFrame struct {
@@ -69,7 +71,7 @@ func NewCallStack() []CallFrame {
 				"tan":         btnTan,
 				"tanh":        btnTanh,
 				"dpy":         btnDpy,
-				"_autonumber": &value{kind: IVAL, ival: 0},
+				"_autonumber": &value{kind: IVAL, ival: big.Int{}},
 			},
 		},
 	}
@@ -180,16 +182,18 @@ func (n *ConstNode) Exec(stack []CallFrame) *value {
 func (n *BinOpNode) Exec(stack []CallFrame) *value {
 	a1 := n.op1.Exec(stack)
 	a2 := n.op2.Exec(stack)
-	return n.fn(a1, a2, n.lineno)
+	kind := resultKind(a1, a2)
+	return n.fn(a1, a2, kind, n.lineno)
 }
 
 func (n *SetOpNode) Exec(stack []CallFrame) *value {
 	alsoDefine := (n.name == "=")
 	a1 := lookup(stack, n.varName, alsoDefine, n.lineno)
 	a2 := n.op1.Exec(stack)
+	kind := resultKind(a1, a2)
 	vv := a2
 	if n.fnOp != nil {
-		vv = n.fnOp(a1, a2, n.lineno)
+		vv = n.fnOp(a1, a2, kind, n.lineno)
 	}
 	*a1 = *vv
 	vvv := *a1
@@ -197,7 +201,7 @@ func (n *SetOpNode) Exec(stack []CallFrame) *value {
 }
 
 func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
-	vv = &value{IVAL, 0, 0.0, nil, nil, nil}
+	vv = &value{IVAL, big.Int{}, 0.0, nil, nil, nil}
 	for {
 		gv := n.guard.Exec(stack)
 		if !gv.Bool(n.guard.Line()) {
@@ -209,7 +213,7 @@ func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
 }
 
 func (n *ForNode) Exec(stack []CallFrame) (vv *value) {
-	vv = &value{IVAL, 0, 0.0, nil, nil, nil}
+	vv = &value{IVAL, big.Int{}, 0.0, nil, nil, nil}
 
 	n.initExpr.Exec(stack)
 
@@ -235,12 +239,12 @@ func (n *IfNode) Exec(stack []CallFrame) *value {
 			return n.elseBody.Exec(stack)
 		}
 	}
-	return &value{IVAL, 0, 0, nil, nil, nil}
+	return &value{IVAL, big.Int{}, 0, nil, nil, nil}
 }
 
 func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	frame := stack[len(stack)-1]
-	vv := &value{PVAL, 0, 0, n, nil, nil}
+	vv := &value{PVAL, big.Int{}, 0, n, nil, nil}
 	frame.vars[n.name] = vv
 	return vv
 }
@@ -256,20 +260,13 @@ func (n *DpyNode) Exec(callStack []CallFrame) *value {
 
 func (n *ExitNode) Exec(callStack []CallFrame) *value {
 	exitRequested = true
-	return &value{IVAL, 0, 0.0, nil, nil, nil}
-}
-
-func asInt(x bool) int64 {
-	if x {
-		return 1
-	}
-	return 0
+	return &value{IVAL, big.Int{}, 0.0, nil, nil, nil}
 }
 
 func (vv *value) Bool(lineno int) bool {
 	switch vv.kind {
 	case IVAL:
-		return vv.ival != 0
+		return vv.ival.Cmp(big.NewInt(0)) != 0
 	case DVAL:
 		panic(fmt.Errorf("Real value can not be used as boolean at line %d", lineno))
 	default:
@@ -278,31 +275,20 @@ func (vv *value) Bool(lineno int) bool {
 	panic("Unreachable")
 }
 
-func (vv *value) Int(lineno int) int64 {
+func (vv *value) Int(lineno int) *big.Int {
 	if vv.kind != IVAL {
 		panic(fmt.Errorf("Can not use non-integer value as integer at line %d\n", lineno))
 	}
-	return vv.ival
+	return &vv.ival
 }
 
 func (vv *value) Real(lineno int) float64 {
 	switch vv.kind {
 	case IVAL:
-		return float64(vv.ival)
+		f, _ := strconv.ParseFloat(vv.ival.String(), 64)
+		return f
 	case DVAL:
 		return vv.dval
 	}
 	panic(fmt.Errorf("Can not use non-number value as real at line %d", lineno))
-}
-
-func (vv *value) String() string {
-	switch vv.kind {
-	case IVAL:
-		return fmt.Sprintf("%d", vv.ival)
-	case DVAL:
-		return fmt.Sprintf("%g", vv.dval)
-	case DTVAL:
-		return vv.dtval.Format("20060102")
-	}
-	return fmt.Sprintf("@")
 }

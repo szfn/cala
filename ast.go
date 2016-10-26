@@ -2,31 +2,15 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 )
 
-type valueKind int
-
-const (
-	IVAL  valueKind = iota // integer
-	DVAL                   // double
-	PVAL                   // a subprogram
-	BVAL                   // a builtin function
-	DTVAL                  // date
-)
+type BuiltinFunc func(argv []*value, lineno int) *value
 
 type BuiltinFn struct {
 	nargs int
-	fn    func(argv []*value, lineno int) *value
-}
-
-type value struct {
-	kind  valueKind
-	ival  int64
-	dval  float64
-	nval  *FnDefNode
-	dtval *time.Time
-	bval  *BuiltinFn
+	fn    BuiltinFunc
 }
 
 type AstNode interface {
@@ -115,7 +99,7 @@ type ConstNode struct {
 func NewConstNode(kind valueKind, ival int64, dval float64, lineno int) *ConstNode {
 	r := &ConstNode{}
 	r.v.kind = kind
-	r.v.ival = ival
+	r.v.ival = *big.NewInt(ival)
 	r.v.dval = dval
 	r.lineno = lineno
 	return r
@@ -130,16 +114,18 @@ func NewDateNode(t time.Time, lineno int) *ConstNode {
 }
 
 func (n *ConstNode) String() string {
-	return fmt.Sprintf("ConstNode<%d, %d, %g>", n.v.kind, n.v.ival, n.v.dval)
+	return fmt.Sprintf("ConstNode<%d, %s, %g>", n.v.kind, n.v.ival.String(), n.v.dval)
 }
 
 func (n *ConstNode) Line() int {
 	return n.lineno
 }
 
+type BinOpFunc func(a1, a2 *value, kind valueKind, lineno int) *value
+
 type BinOpNode struct {
 	name     string
-	fn       func(a1, a2 *value, lineno int) *value
+	fn       BinOpFunc
 	op1      AstNode
 	op2      AstNode
 	lineno   int
@@ -162,7 +148,7 @@ func (n *BinOpNode) Line() int {
 
 type SetOpNode struct {
 	name    string
-	fnOp    func(a1, a2 *value, lineno int) *value
+	fnOp    BinOpFunc
 	varName string
 	op1     AstNode
 	lineno  int

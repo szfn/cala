@@ -34,9 +34,9 @@ func testExecInt(t *testing.T, s string, tgt int64) {
 		fmt.Printf("Program:\n%s\n", s)
 		t.Fatalf("Output value not integer: %v\n", v)
 	}
-	if v.ival != tgt {
+	if v.ival.Int64() != tgt {
 		fmt.Printf("Program:\n%s\n", s)
-		t.Fatalf("Output value mismatch %v (expected: %g)\n", v, tgt)
+		t.Fatalf("Output value mismatch %v (expected: %d)\n", v, tgt)
 	}
 }
 
@@ -49,7 +49,7 @@ func TestExecOps(t *testing.T) {
 	testExecReal(t, "2.1 - 0.5", 1.6)
 	testExecReal(t, "2.0 * 5.0", 10.0)
 	testExecReal(t, "5/2", 2.5)
-	testExecReal(t, "2**4", 16)
+	testExecReal(t, "2.1**4", 19.4481)
 	testExecReal(t, "2**-2", 0.25)
 	testExecReal(t, "2**0.5", 1.41421356)
 	testExecReal(t, "2**(1/2)", 1.41421356)
@@ -76,6 +76,7 @@ func TestExecOps(t *testing.T) {
 	testExecInt(t, "2 - 5", -3)
 	testExecInt(t, "2 * 5", 10)
 	testExecInt(t, "4 % 3", 1)
+	testExecInt(t, "2**4", 16)
 	testExecInt(t, "1 || 0", 1)
 	testExecInt(t, "0 || 0", 0)
 	testExecInt(t, "1 && 0", 0)
