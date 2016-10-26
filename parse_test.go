@@ -51,12 +51,12 @@ func TestParseExpr(t *testing.T) {
 			NewBinOpNode(token{ADDOPTOK, "+", 0},
 				NewBinOpNode(token{ADDOPTOK, "+", 0},
 					NewVarNode("a", 0),
-					NewVarNode("b", 0), nil),
+					NewVarNode("b", 0)),
 				NewBinOpNode(token{MULOPTOK, "*", 0},
 					NewBinOpNode(token{MULOPTOK, "*", 0},
 						NewVarNode("c", 0),
-						NewVarNode("d", 0), nil),
-					NewVarNode("e", 0), nil), nil)}, 0).String())
+						NewVarNode("d", 0)),
+					NewVarNode("e", 0)))}, 0).String())
 	matchAst(t,
 		"a + b + c * d + e",
 		NewBodyNode([]AstNode{
@@ -64,27 +64,27 @@ func TestParseExpr(t *testing.T) {
 				NewBinOpNode(token{ADDOPTOK, "+", 0},
 					NewBinOpNode(token{ADDOPTOK, "+", 0},
 						NewVarNode("a", 0),
-						NewVarNode("b", 0), nil),
+						NewVarNode("b", 0)),
 					NewBinOpNode(token{MULOPTOK, "*", 0},
 						NewVarNode("c", 0),
-						NewVarNode("d", 0), nil), nil),
-				NewVarNode("e", 0), nil)}, 0).String())
+						NewVarNode("d", 0))),
+				NewVarNode("e", 0))}, 0).String())
 	matchAst(t,
 		"a - b + c",
 		NewBodyNode([]AstNode{
 			NewBinOpNode(token{ADDOPTOK, "+", 0},
 				NewBinOpNode(token{SUBOPTOK, "-", 0},
 					NewVarNode("a", 0),
-					NewVarNode("b", 0), nil),
-				NewVarNode("c", 0), nil)}, 0).String())
+					NewVarNode("b", 0)),
+				NewVarNode("c", 0))}, 0).String())
 	matchAst(t,
 		"a + b - c",
 		NewBodyNode([]AstNode{
 			NewBinOpNode(token{SUBOPTOK, "-", 0},
 				NewBinOpNode(token{ADDOPTOK, "+", 0},
 					NewVarNode("a", 0),
-					NewVarNode("b", 0), nil),
-				NewVarNode("c", 0), nil)}, 0).String())
+					NewVarNode("b", 0)),
+				NewVarNode("c", 0))}, 0).String())
 }
 
 func TestParseNumber(t *testing.T) {

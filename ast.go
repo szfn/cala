@@ -131,12 +131,11 @@ type BinOpNode struct {
 	op2      AstNode
 	lineno   int
 	priority int
-	parent   *BinOpNode
 }
 
-func NewBinOpNode(tok token, op1, op2 AstNode, parent *BinOpNode) *BinOpNode {
+func NewBinOpNode(tok token, op1, op2 AstNode) *BinOpNode {
 	fn := tok.ttype.BinFn
-	return &BinOpNode{tok.ttype.Name, fn, op1, op2, tok.lineno, tok.ttype.Priority, parent}
+	return &BinOpNode{tok.ttype.Name, fn, op1, op2, tok.lineno, tok.ttype.Priority}
 }
 
 func (n *BinOpNode) String() string {

@@ -24,7 +24,7 @@ func testExecReal(t *testing.T, s string, tgt float64) {
 	}
 	if math.Abs(v.dval-tgt) > 0.0001 {
 		fmt.Printf("Program:\n%s\n", s)
-		t.Fatalf("Output value mismatch %v (expected: %d)\n", v, tgt)
+		t.Fatalf("Output value mismatch %v (expected: %g)\n", v, tgt)
 	}
 }
 

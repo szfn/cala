@@ -168,7 +168,7 @@ func parseStatement(ts *tokenStream, toplevel bool) AstNode {
 
 	if tok.ttype != KWDTOK {
 		ts.rewind(tok)
-		e := parseExpression(ts)
+		e := parseExpressionSet(ts)
 		parseSemicolon(ts, toplevel)
 		return e
 	}
@@ -209,7 +209,7 @@ func parseSemicolon(ts *tokenStream, toplevel bool) {
 // if ::= | if (<expression>) { <statement-list> } | if (<expression>) { <statement-list> } else { <statement-list> } | if (<expression> { <statement-list> } else <if>
 func parseIf(ts *tokenStream, lineno int) AstNode {
 	tokMust(PAROPTOK, ts, " (parsing 'if' statement)")
-	guard := parseExpression(ts)
+	guard := parseExpressionSet(ts)
 	tokMust(PARCLTOK, ts, " (parsing 'if' statement)")
 	tokMust(CRLOPTOK, ts, " (parsing 'if' statement)")
 	ifBody := parseStatements(ts, false)
@@ -238,7 +238,7 @@ func parseIf(ts *tokenStream, lineno int) AstNode {
 // while ::= while (<expression>) { <statement-list> }
 func parseWhile(ts *tokenStream, lineno int) AstNode {
 	tokMust(PAROPTOK, ts, " (parsing 'while' statement)")
-	guard := parseExpression(ts)
+	guard := parseExpressionSet(ts)
 	tokMust(PARCLTOK, ts, " (parsing 'while' statement)")
 	tokMust(CRLOPTOK, ts, " (parsing 'while' statement)")
 	body := parseStatements(ts, false)
@@ -250,11 +250,11 @@ func parseWhile(ts *tokenStream, lineno int) AstNode {
 // for ::= for (<expression>; <expression>; <expression>) { <statement-list> }
 func parseFor(ts *tokenStream, lineno int) AstNode {
 	tokMust(PAROPTOK, ts, " (parsing 'for' statement)")
-	initExpr := parseExpression(ts)
+	initExpr := parseExpressionSet(ts)
 	tokMust(SCOLTOK, ts, " (parsing 'for' statement)")
-	guard := parseExpression(ts)
+	guard := parseExpressionSet(ts)
 	tokMust(SCOLTOK, ts, " (parsing 'for' statement)")
-	incrExpr := parseExpression(ts)
+	incrExpr := parseExpressionSet(ts)
 	tokMust(PARCLTOK, ts, " (parsing 'for' statement)")
 	tokMust(CRLOPTOK, ts, " (parsing 'for' statement)")
 	body := parseStatements(ts, false)
@@ -283,7 +283,7 @@ func parseDpy(ts *tokenStream, lineno int) AstNode {
 	}
 
 	ts.rewind(tok)
-	expr := parseExpression(ts)
+	expr := parseExpressionSet(ts)
 	return &DpyNode{expr, false, lineno}
 }
 
@@ -296,91 +296,89 @@ func parseExit(ts *tokenStream, lineno int) AstNode {
 	return &ExitNode{lineno}
 }
 
-// Parses expressions, this only does the infix operator parsing, everything else is offloaded to parseExpressionNoinfix
-// expression ::= <var> <assignment-operator> <expressionComp> | <expressionComp>
-// expressionComp ::= <expressionBool> <comparison-operator> <expressionComp> | <expressionBool>
-// expressionBool ::= <expressionAdd> <bool-opeartor> <expressionBool> | <expressionAdd>
-// expressionAdd ::= <expressionMul> <add-or-subtract> <expressionAdd> | <expressionMul>
-// expressionMul ::= <expressionNoninfix> <mul-or-div> <expressionMul> | <expressionNoninfix>
-// Note: the implementation uses a table instead of following BNF faithfully
-func parseExpression(ts *tokenStream) AstNode {
+// Parses assignment expression, this only does the infix operator parsing, everything else is offloaded to parseExpressionNoinfix
+// expressionSet ::= <var> <assignment-operator> <expressionInfix> | <expressionInfix>
+func parseExpressionSet(ts *tokenStream) AstNode {
 	tok1 := ts.get()
 	if tok1.ttype != SYMTOK {
 		ts.rewind(tok1)
-		return parseExpressionEx(ts)
+		return parseExpressionInfix(ts)
 	}
 
 	tok2 := ts.get() // fun fact: this the thing that makes this grammar LL(2) instead of LL(1)
 	if tok2.ttype.IsSetOperator {
-		return NewSetOpNode(tok2, tok1.val, parseExpressionEx(ts))
+		return NewSetOpNode(tok2, tok1.val, parseExpressionInfix(ts))
 	}
 
 	ts.rewind(tok2)
 	ts.rewind(tok1)
-	return parseExpressionEx(ts)
+	return parseExpressionInfix(ts)
 }
 
-func parseExpressionEx(ts *tokenStream) AstNode {
-	var head *BinOpNode = nil
-	var curInc *BinOpNode = nil
+// Parses infix expression using dijkstra algorithm:
+// https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+//
+// Equivalent BNF productions:
+// expressionComp ::= <expressionBool> <comparison-operator> <expressionComp> | <expressionBool>
+// expressionBool ::= <expressionAdd> <bool-opeartor> <expressionBool> | <expressionAdd>
+// expressionAdd ::= <expressionMul> <add-or-subtract> <expressionAdd> | <expressionMul>
+// expressionMul ::= <expressionNoninfix> <mul-or-div> <expressionMul> | <expressionNoninfix>
+func parseExpressionInfix(ts *tokenStream) AstNode {
+	outStack := []AstNode{}
+	opStack := []token{}
+
+	outpop := func() AstNode {
+		r := outStack[len(outStack)-1]
+		outStack = outStack[:len(outStack)-1]
+		return r
+	}
+
+	oppop := func() {
+		op := opStack[len(opStack)-1]
+		opStack = opStack[:len(opStack)-1]
+		right := outpop()
+		left := outpop()
+		outStack = append(outStack, NewBinOpNode(op, left, right))
+	}
 
 	for {
-		/*if head != nil {
-			println("current head:", head.String())
-		}*/
-		floatingNode := parseExpressionNoinfix(ts)
-		optok := ts.get()
+		outStack = append(outStack, parseExpressionNoinfix(ts))
 
-		if (optok.ttype.Priority < 0) || (optok.ttype.BinFn == nil) {
-			// not a binary operator
-			ts.rewind(optok)
-			if curInc == nil {
-				return floatingNode
+		tokop := ts.get()
+		if tokop.ttype == EOFTOK || tokop.ttype == PARCLTOK || tokop.ttype == SCOLTOK || tokop.ttype == COMMATOK {
+			ts.rewind(tokop)
+			break
+		}
+
+		if tokop.ttype.Priority < 0 {
+			unexpectedToken(tokop, "expecting operator")
+		}
+
+		for {
+			if len(opStack) == 0 {
+				break
 			}
-			curInc.op2 = floatingNode
-			return head
-		}
 
-		if curInc == nil {
-			curInc = NewBinOpNode(optok, floatingNode, &NilNode{}, nil)
-			head = curInc
-			continue
-		}
-
-		// if the next operator is higher priority of the currently incomplete binary operator,
-		// add next operator as operand to the incomplete binary operator
-		if optok.ttype.Priority > curInc.priority {
-			n := NewBinOpNode(optok, floatingNode, &NilNode{}, curInc)
-			curInc.op2 = n
-			curInc = n
-			continue
-		}
-
-		// otherwise we need to find the correct insertion point based on operator priority
-
-		curInc.op2 = floatingNode
-		floatingNode = nil
-
-		var cur *BinOpNode
-		for cur = curInc.parent; (cur != nil) && (optok.ttype.Priority <= cur.priority); cur = cur.parent {
-			//nothing here
-		}
-
-		if cur == nil {
-			curInc = NewBinOpNode(optok, head, &NilNode{}, nil)
-			head.parent = curInc
-			head = curInc
-		} else {
-			curInc = NewBinOpNode(optok, cur.op2, &NilNode{}, nil)
-			switch p := cur.op2.(type) {
-			case *BinOpNode:
-				p.parent = curInc
-			default:
-				panic(fmt.Errorf("This is impossible"))
+			prevop := opStack[len(opStack)-1]
+			if tokop.ttype.Priority > prevop.ttype.Priority {
+				break
 			}
-			cur.op2 = curInc
+			// if tokop is right associative break when tokop.ttype.Priority >= prevop.ttype.Priority
+			oppop()
 		}
+
+		opStack = append(opStack, tokop)
 	}
+
+	for len(opStack) > 0 {
+		oppop()
+	}
+
+	if len(outStack) != 1 {
+		panic(fmt.Errorf("could not parse"))
+	}
+
+	return outStack[0]
 }
 
 // Parses everything related to expressions except infix operators (because they are hard)
@@ -432,7 +430,7 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 
 	/* subexpression */
 	case PAROPTOK:
-		n := parseExpression(ts)
+		n := parseExpressionSet(ts)
 		tokMust(PARCLTOK, ts, " (while parsing subexpression)")
 		return n
 
@@ -461,7 +459,7 @@ func parseFnCall(name string, ts *tokenStream, lineno int) AstNode {
 			first = false
 		}
 
-		args = append(args, parseExpression(ts))
+		args = append(args, parseExpressionSet(ts))
 	}
 
 	panic("Unreachable")
