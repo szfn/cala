@@ -43,7 +43,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Could not execute %s: %v\n", arg, eerr)
 			continue
 		}
-		fmt.Printf("= %s\n", vret)
+		fmt.Printf("= %s\n\n", vret)
 
 		callStack = callStack[:1]
 	}
@@ -70,6 +70,8 @@ func main() {
 			btnHelp.bval.fn(nil, 0)
 			continue
 		}
+		
+		ls.AppendHistory(line)
 
 		program, perr := parseString(line)
 		if perr != nil {
@@ -86,10 +88,10 @@ func main() {
 			autonumberVar := lookup(callStack, "_autonumber", false, -1)
 			prn := func(varname string) bool {
 				if autonumberVar.ival.Cmp(&big.Int{}) != 0 {
-					fmt.Printf("= %-60s = %s\n", vret, varname)
+					fmt.Printf("= %-60s = %s\n\n", vret, varname)
 					return true
 				} else {
-					fmt.Printf("= %s\n", vret)
+					fmt.Printf("= %s\n\n", vret)
 					return false
 				}
 			}

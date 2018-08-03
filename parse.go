@@ -494,7 +494,7 @@ func parseInt(s string, base, lineno int) AstNode {
 func parseDate(s string, lineno int) AstNode {
 	t, err := time.Parse("20060102", s)
 	if err != nil {
-		panic(fmt.Errorf("Syntax error: wrong date format at line: %d: %d", lineno, err.Error()))
+		panic(fmt.Errorf("Syntax error: wrong date format at line: %d: %v", lineno, err.Error()))
 	}
 	return NewDateNode(t, lineno)
 }
@@ -509,7 +509,7 @@ func tokMust(ttype tokenType, ts *tokenStream, when string) string {
 	} else if tok.ttype == EOFTOK {
 		panic(fmt.Errorf("Syntax error: unexpected end of file at line %d %s", tok.lineno, when))
 	} else if tok.ttype != ttype {
-		panic(fmt.Errorf("Syntax error: unexpected token '%s' in line %d (expecting '%s' %s)", tok.val, tok.lineno, ttype, when))
+		panic(fmt.Errorf("Syntax error: unexpected token '%s' in line %d (expecting '%v' %s)", tok.val, tok.lineno, ttype, when))
 	}
 
 	return tok.val
