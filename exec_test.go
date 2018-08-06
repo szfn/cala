@@ -28,6 +28,18 @@ func testExecReal(t *testing.T, s string, tgt float64) {
 	}
 }
 
+func testExecRat(t *testing.T, s string, tgt string) {
+	v := execString(t, s)
+	if v.kind != RVAL {
+		fmt.Printf("Program:\n%s\n", s)
+		t.Fatalf("Output value not rational: %v\n", v)
+	}
+	if v.String() != tgt {
+		fmt.Printf("Program:\n%s\n", s)
+		t.Fatalf("Output value mismatch %s (expected: %s)\n", v, tgt)
+	}
+}
+
 func testExecInt(t *testing.T, s string, tgt int64) {
 	v := execString(t, s)
 	if v.kind != IVAL {
@@ -49,7 +61,8 @@ func testExecPrint(t *testing.T, s string, tgt string) {
 }
 
 func TestExecOps(t *testing.T) {
-	// reals
+	// reals (floating point mode)
+	testExecInt(t, "@:f", 0)
 	testExecReal(t, "10.2", 10.2)
 	testExecReal(t, "-10.2", -10.2)
 	testExecReal(t, "+10.2", 10.2)
@@ -101,9 +114,37 @@ func TestExecOps(t *testing.T) {
 	testExecInt(t, "11 < 10", 0)
 	testExecInt(t, "10 <= 11", 1)
 	testExecInt(t, "11 <= 10", 0)
+
+	// reals (rational mode)
+	testExecInt(t, "@:r", 0)
+	testExecRat(t, "10.2", "10.2")
+	testExecRat(t, "-10.2", "-10.2")
+	testExecRat(t, "+10.2", "10.2")
+	testExecRat(t, "2.2 + 2.1", "4.3")
+	testExecRat(t, "2.1 - 0.5", "1.6")
+	testExecRat(t, "2.0 * 5.0", "10.0")
+	testExecRat(t, "5/2", "2.5")
+	testExecRat(t, "2.1**4", "19.4")
+	testExecRat(t, "2**-2", "0.3")
+	testExecRat(t, "2.2**-2", "0.2")
+	testExecRat(t, "2**0.5", "1.4")
+	testExecRat(t, "2**(1/2)", "1.4")
+	testExecInt(t, "10.3 == 11.3", 0)
+	testExecInt(t, "11.3 == 11.3", 1)
+	testExecInt(t, "10.3 != 11.3", 1)
+	testExecInt(t, "11.3 != 11.3", 0)
+	testExecInt(t, "10.2 > 11.1", 0)
+	testExecInt(t, "11.5 > 10.9", 1)
+	testExecInt(t, "10.2 >= 11.1", 0)
+	testExecInt(t, "11.5 >= 10.9", 1)
+	testExecInt(t, "10.2 < 11.1", 1)
+	testExecInt(t, "11.5 < 10.9", 0)
+	testExecInt(t, "10.2 <= 11.1", 1)
+	testExecInt(t, "11.5 <= 10.9", 0)
 }
 
 func TestExecVars(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecInt(t, "a = 12; a++; a", 13)
 	testExecInt(t, "a = 12; a--; a", 11)
 	testExecInt(t, "a = 12; a++", 13)
@@ -134,6 +175,7 @@ func TestExecVars(t *testing.T) {
 }
 
 func TestExecComposed(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecInt(t, "1+1+1+1+1", 5)
 	testExecInt(t, "1+2*3-2", 5)
 	testExecInt(t, "(1+2)*3-2", 7)
@@ -142,6 +184,7 @@ func TestExecComposed(t *testing.T) {
 }
 
 func TestExecArithmeticBook(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecInt(t, "3+2", 5)
 	testExecReal(t, "4/3", 4.0/3.0)
 	testExecReal(t, "2*(3 + 6/2)/4", 3.0)
@@ -159,6 +202,7 @@ func TestExecArithmeticBook(t *testing.T) {
 }
 
 func TestExecFlavorPermanence(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecPrint(t, "16", "16")
 	testExecPrint(t, "0x16", "0x16")
 	testExecPrint(t, "011", "011")
@@ -168,6 +212,7 @@ func TestExecFlavorPermanence(t *testing.T) {
 }
 
 func TestExecStatement(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecInt(t, `
 		a = 2;
 		if (a > 1) {
@@ -210,8 +255,15 @@ func TestExecStatement(t *testing.T) {
 }
 
 func TestBuiltin(t *testing.T) {
+	testExecInt(t, "@:f", 0)
 	testExecReal(t, "cos(3)", math.Cos(3))
 	testExecReal(t, "ln(4.3)", math.Log(4.3))
+
+	testExecInt(t, "@:r", 0)
+	testExecInt(t, "floor(3.1)", 3)
+	testExecInt(t, "ceil(3.1)", 4)
+	testExecRat(t, "cos(3)", "-1.0")
+	testExecRat(t, "ln(4.3)", "1.5")
 }
 
 func TestAckermann(t *testing.T) {
@@ -227,6 +279,7 @@ func TestAckermann(t *testing.T) {
 		}
 	`
 
+	testExecInt(t, "@:f", 0)
 	testExecInt(t, ackermann+"af(0, 0)", 1)
 	testExecInt(t, ackermann+"af(0, 1)", 2)
 	testExecInt(t, ackermann+"af(0, 2)", 3)

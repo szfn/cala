@@ -29,7 +29,25 @@ var btnAbs = makeFuncValue(1, func(argv []*value, lineno int) *value {
 
 func makeFloatFuncValue(fn func(float64) float64) *value {
 	return makeFuncValue(1, func(argv []*value, lineno int) *value {
-		return newFloatval(fn(argv[0].Real(lineno)))
+		kind := argv[0].kind
+		if kind == IVAL {
+			switch CommaMode {
+			case undefinedComma:
+				panic("real mode undefined, use @:r to select rational or @:f to select floating point")
+			case floatComma:
+				kind = DVAL
+			case rationalComma:
+				kind = RVAL
+			}
+		}
+		switch kind {
+		case RVAL:
+			var r big.Rat
+			r.SetFloat64(fn(argv[0].Real(lineno)))
+			return newRatval(r)
+		default:
+			return newFloatval(fn(argv[0].Real(lineno)))
+		}
 	})
 }
 
@@ -48,11 +66,39 @@ var btnTan = makeFloatFuncValue(math.Tan)
 var btnTanh = makeFloatFuncValue(math.Tanh)
 
 var btnFloor = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{IVAL, DECFLV, *big.NewInt(int64(math.Floor(argv[0].Real(lineno)))), 0, nil, nil, nil}
+	switch argv[0].kind {
+	case RVAL:
+		a := argv[0].Rat(lineno)
+		var z, r big.Int
+		z.QuoRem(a.Num(), a.Denom(), &r)
+
+		if z.Sign() < 0 {
+			if r.Cmp(big.NewInt(0)) != 0 {
+				z.Sub(&z, big.NewInt(1))
+			}
+		}
+		return newIntval(z, DECFLV)
+	default:
+		return newIntval(*big.NewInt(int64(math.Floor(argv[0].Real(lineno)))), DECFLV)
+	}
 })
 
 var btnCeil = makeFuncValue(1, func(argv []*value, lineno int) *value {
-	return &value{IVAL, DECFLV, *big.NewInt(int64(math.Ceil(argv[0].Real(lineno)))), 0, nil, nil, nil}
+	switch argv[0].kind {
+	case RVAL:
+		a := argv[0].Rat(lineno)
+		var z, r big.Int
+		z.QuoRem(a.Num(), a.Denom(), &r)
+
+		if z.Sign() >= 0 {
+			if r.Cmp(big.NewInt(0)) != 0 {
+				z.Add(&z, big.NewInt(1))
+			}
+		}
+		return newIntval(z, DECFLV)
+	default:
+		return newIntval(*big.NewInt(int64(math.Ceil(argv[0].Real(lineno)))), DECFLV)
+	}
 })
 
 func hexsplit(s string) string {
@@ -167,6 +213,8 @@ var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
 	fmt.Printf("\n")
 	fmt.Printf("@ expr\t\tDetailed variable view, alias for dpy(expr)\n")
 	fmt.Printf("@:p\t\tToggles programmer mode (in programmer mode results are shown in decimal and hexadecimal\n")
+	fmt.Printf("@:f\t\tToggles float mode (numbers with a comma are interpreted as floating point, division produces a floating point number)\n")
+	fmt.Printf("@:r\t\tToggles rational mode (numbers with a comma and division produce exact results)\n")
 	fmt.Printf("\n")
 	fmt.Printf("DATES:\n")
 	fmt.Printf("Date literals are declared with $yyyymmdd for example $20160101 is 2016-01-01, integers can be added to and subtracted from dates\n")

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 	"time"
 )
 
@@ -96,12 +95,9 @@ type ConstNode struct {
 	lineno int
 }
 
-func NewConstNode(kind valueKind, flavor valueFlavor, ival int64, dval float64, lineno int) *ConstNode {
+func NewConstNode(v *value, lineno int) *ConstNode {
 	r := &ConstNode{}
-	r.v.kind = kind
-	r.v.flavor = flavor
-	r.v.ival = *big.NewInt(ival)
-	r.v.dval = dval
+	r.v = *v
 	r.lineno = lineno
 	return r
 }
@@ -262,9 +258,11 @@ func (n *NilNode) Line() int {
 }
 
 type DpyNode struct {
-	expr       AstNode
-	toggleProg bool
-	lineno     int
+	expr        AstNode
+	toggleProg  bool
+	changeComma bool
+	commaMode   commaMode
+	lineno      int
 }
 
 func (n *DpyNode) String() string {

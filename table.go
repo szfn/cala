@@ -130,10 +130,12 @@ var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *val
 		v := newZeroVal(IVAL, a1.flavor)
 		v.ival.Add(a1.Int(lineno), a2.Int(lineno))
 		return v
-
 	case DVAL:
 		return newFloatval(a1.Real(lineno) + a2.Real(lineno))
-
+	case RVAL:
+		v := newZeroVal(RVAL, a1.flavor)
+		v.rval.Add(a1.Rat(lineno), a2.Rat(lineno))
+		return v
 	case DTVAL:
 		a1, a2 = sortDtval(a1, a2)
 		return newDateval(a1.dtval.AddDate(0, 0, int(a2.Int(lineno).Int64())))
@@ -150,6 +152,10 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 		return v
 	case DVAL:
 		return newFloatval(a1.Real(lineno) - a2.Real(lineno))
+	case RVAL:
+		v := newZeroVal(RVAL, a1.flavor)
+		v.rval.Sub(a1.Rat(lineno), a2.Rat(lineno))
+		return v
 	case DTVAL:
 		a1, a2 = sortDtval(a1, a2)
 		return newDateval(a1.dtval.AddDate(0, 0, -int(a2.Int(lineno).Int64())))
@@ -165,6 +171,10 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 			return v
 		case DVAL:
 			return newFloatval(-a1.dval)
+		case RVAL:
+			v := newZeroVal(RVAL, a1.flavor)
+			v.rval.Neg(&a1.rval)
+			return v
 		default:
 			panic(badtype("-", lineno))
 		}
@@ -178,13 +188,28 @@ var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, kind valueKind, lineno int) *val
 		return v
 	case DVAL:
 		return newFloatval(a1.Real(lineno) * a2.Real(lineno))
+	case RVAL:
+		v := newZeroVal(RVAL, a1.flavor)
+		v.rval.Mul(a1.Rat(lineno), a2.Rat(lineno))
+		return v
 	default:
 		panic(badtype("*", lineno))
 	}
 })
 
 var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	return newFloatval(a1.Real(lineno) / a2.Real(lineno))
+	switch CommaMode {
+	case undefinedComma:
+		panic("Can not use division in undefined mode, use '@:f' for floating point or '@:r' for rational")
+	case floatComma:
+		return newFloatval(a1.Real(lineno) / a2.Real(lineno))
+	case rationalComma:
+		r := newZeroVal(RVAL, a1.flavor)
+		r.rval.Quo(a1.Rat(lineno), a2.Rat(lineno))
+		return r
+	default:
+		panic("unknown mode")
+	}
 })
 
 var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
@@ -197,7 +222,17 @@ var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *va
 	switch kind {
 	case IVAL:
 		if a2.Int(lineno).Cmp(&big.Int{}) < 0 {
-			return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+			switch CommaMode {
+			case undefinedComma:
+				panic("Can not use division in undefined mode, use '@:f' for floating point or '@:r' for rational")
+			case floatComma:
+				return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+			case rationalComma:
+				return rationalPow(a2, a2, lineno)
+			default:
+				panic("impossible")
+			}
+
 		} else {
 			v := newZeroVal(IVAL, a1.flavor)
 			v.ival.Exp(a1.Int(lineno), a2.Int(lineno), nil)
@@ -205,10 +240,45 @@ var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *va
 		}
 	case DVAL:
 		return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+	case RVAL:
+		return rationalPow(a1, a2, lineno)
 	default:
 		panic(badtype("**", lineno))
 	}
 })
+
+func rationalPow(a1, a2 *value, lineno int) *value {
+	expfr := a2.Rat(lineno)
+	if !expfr.IsInt() {
+		base, _ := a1.Rat(lineno).Float64()
+		exp, _ := a2.Rat(lineno).Float64()
+		r := newZeroVal(RVAL, a1.flavor)
+		r.rval.SetFloat64(math.Pow(base, exp))
+		return r
+	}
+
+	exp := expfr.Num()
+	swap := false
+	if exp.Sign() < 0 {
+		swap = true
+		exp.Neg(exp)
+	}
+
+	base := a1.Rat(lineno)
+	numerator := base.Num()
+	denominator := base.Denom()
+
+	numerator = numerator.Exp(numerator, exp, nil)
+	denominator = denominator.Exp(denominator, exp, nil)
+
+	r := newZeroVal(RVAL, a1.flavor)
+	if swap {
+		r.rval.SetFrac(denominator, numerator)
+	} else {
+		r.rval.SetFrac(numerator, denominator)
+	}
+	return r
+}
 
 var OROPTOK = TOp2("||", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	return newBoolval(a1.Bool(lineno) || a2.Bool(lineno))
@@ -236,6 +306,8 @@ var INCOPTOK = TOp("++", -1, func(a1 *value, lineno int) *value {
 		a1.ival.Add(&a1.ival, big.NewInt(1))
 	case DVAL:
 		a1.dval++
+	case RVAL:
+		a1.rval.Add(&a1.rval, big.NewRat(1, 1))
 	default:
 		panic(badtype("++", lineno))
 	}
@@ -248,6 +320,8 @@ var DECOPTOK = TOp("--", -1, func(a1 *value, lineno int) *value {
 		a1.ival.Sub(&a1.ival, big.NewInt(1))
 	case DVAL:
 		a1.dval--
+	case RVAL:
+		a1.rval.Sub(&a1.rval, big.NewRat(1, 1))
 	default:
 		panic(badtype("--", lineno))
 	}
@@ -268,6 +342,8 @@ var EQOPTOK = TOp2("==", 0, func(a1, a2 *value, kind valueKind, lineno int) *val
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) == 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) == a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) == 0)
 	default:
 		panic(badtype("==", lineno))
 	}
@@ -279,6 +355,8 @@ var GEOPTOK = TOp2X("ge", ">=", 0, func(a1, a2 *value, kind valueKind, lineno in
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) >= 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) >= a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) >= 0)
 	default:
 		panic(badtype(">=", lineno))
 	}
@@ -290,6 +368,8 @@ var GTOPTOK = TOp2X("gt", ">", 0, func(a1, a2 *value, kind valueKind, lineno int
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) > 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) > a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) > 0)
 	default:
 		panic(badtype(">", lineno))
 	}
@@ -301,6 +381,8 @@ var LEOPTOK = TOp2X("le", "<=", 0, func(a1, a2 *value, kind valueKind, lineno in
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) <= 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) <= a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) <= 0)
 	default:
 		panic(badtype("<=", lineno))
 	}
@@ -312,6 +394,8 @@ var LTOPTOK = TOp2X("lt", "<", 0, func(a1, a2 *value, kind valueKind, lineno int
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) < 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) < a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) < 0)
 	default:
 		panic(badtype("<", lineno))
 	}
@@ -323,6 +407,8 @@ var NEOPTOK = TOp2("!=", 0, func(a1, a2 *value, kind valueKind, lineno int) *val
 		return newBoolval(a1.Int(lineno).Cmp(a2.Int(lineno)) != 0)
 	case DVAL:
 		return newBoolval(a1.Real(lineno) != a2.Real(lineno))
+	case RVAL:
+		return newBoolval(a1.Rat(lineno).Cmp(a2.Rat(lineno)) != 0)
 	default:
 		panic(badtype("!=", lineno))
 	}

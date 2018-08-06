@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"runtime"
 	"strconv"
 	"strings"
@@ -268,7 +269,7 @@ func parseDpy(ts *tokenStream, lineno int) AstNode {
 	switch tok.ttype {
 	case SCOLTOK, EOFTOK:
 		ts.rewind(tok)
-		return &DpyNode{NewVarNode("_", lineno), false, lineno}
+		return &DpyNode{NewVarNode("_", lineno), false, false, 0, lineno}
 	case COLONTOK:
 		tok = ts.get()
 		if tok.ttype != SYMTOK {
@@ -276,7 +277,13 @@ func parseDpy(ts *tokenStream, lineno int) AstNode {
 		}
 		switch tok.val {
 		case "p":
-			return &DpyNode{nil, true, lineno}
+			return &DpyNode{nil, true, false, 0, lineno}
+		case "f":
+			CommaMode = floatComma
+			return &DpyNode{nil, false, true, floatComma, lineno}
+		case "r":
+			CommaMode = rationalComma
+			return &DpyNode{nil, false, true, rationalComma, lineno}
 		default:
 			unexpectedToken(tok, " (while parsing display statement)")
 		}
@@ -284,7 +291,7 @@ func parseDpy(ts *tokenStream, lineno int) AstNode {
 
 	ts.rewind(tok)
 	expr := parseExpressionSet(ts)
-	return &DpyNode{expr, false, lineno}
+	return &DpyNode{expr, false, false, 0, lineno}
 }
 
 func parseExit(ts *tokenStream, lineno int) AstNode {
@@ -467,18 +474,33 @@ func parseFnCall(name string, ts *tokenStream, lineno int) AstNode {
 
 // Parses a real number
 func parseReal(s string, lineno int) AstNode {
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
+	switch CommaMode {
+	case undefinedComma:
+		panic(fmt.Errorf("Can not parse numbers with a comma in undefined mode, use '@:f' for floating point or '@:r' for rational"))
+	case floatComma:
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
+		}
+		return NewConstNode(newFloatval(v), lineno)
+	case rationalComma:
+		var v big.Rat
+		_, ok := v.SetString(s)
+		if !ok {
+			panic(fmt.Errorf("Syntax error: wrong number format at line %d", lineno))
+		}
+		return NewConstNode(newRatval(v), lineno)
+	default:
+		panic("unexpected")
 	}
-	return NewConstNode(DVAL, DECFLV, 0, v, lineno)
 }
 
 // Parses an integer
 func parseInt(s string, base, lineno int) AstNode {
-	v, err := strconv.ParseInt(s, base, 64)
-	if err != nil {
-		panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
+	var v big.Int
+	_, ok := v.SetString(s, base)
+	if !ok {
+		panic(fmt.Errorf("Syntax error: wrong number format at line %d", lineno))
 	}
 	flavor := DECFLV
 	switch base {
@@ -487,7 +509,7 @@ func parseInt(s string, base, lineno int) AstNode {
 	case 8:
 		flavor = OCTFLV
 	}
-	return NewConstNode(IVAL, flavor, v, 0.0, lineno)
+	return NewConstNode(newIntval(v, flavor), lineno)
 }
 
 // Parses a date

@@ -256,10 +256,16 @@ func (n *NilNode) Exec(callStack []CallFrame) *value {
 }
 
 func (n *DpyNode) Exec(callStack []CallFrame) *value {
-	if n.toggleProg {
+	switch {
+	case n.toggleProg:
 		programmerMode = true
 		return newZeroVal(IVAL, DECFLV)
-	} else {
+
+	case n.changeComma:
+		CommaMode = n.commaMode
+		return newZeroVal(IVAL, DECFLV)
+
+	default:
 		v := n.expr.Exec(callStack)
 		return btnDpy.bval.fn([]*value{v}, n.lineno)
 	}
@@ -296,6 +302,25 @@ func (vv *value) Real(lineno int) float64 {
 		return f
 	case DVAL:
 		return vv.dval
+	case RVAL:
+		f, _ := vv.rval.Float64()
+		return f
+	}
+	panic(fmt.Errorf("Can not use non-number value as real at line %d", lineno))
+}
+
+func (vv *value) Rat(lineno int) *big.Rat {
+	switch vv.kind {
+	case IVAL:
+		var r big.Rat
+		r.SetInt(&vv.ival)
+		return &r
+	case RVAL:
+		return &vv.rval
+	case DVAL:
+		var r big.Rat
+		r.SetFloat64(vv.dval)
+		return &r
 	}
 	panic(fmt.Errorf("Can not use non-number value as real at line %d", lineno))
 }

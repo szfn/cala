@@ -12,6 +12,16 @@ import (
 var programmerMode = false
 var exitRequested = false
 
+var CommaMode commaMode
+
+type commaMode uint8
+
+const (
+	undefinedComma = iota
+	floatComma
+	rationalComma
+)
+
 func main() {
 	interactive := 1 /* 0: no, 1: maybe, 2: definitely */
 	callStack := NewCallStack()
@@ -70,7 +80,7 @@ func main() {
 			btnHelp.bval.fn(nil, 0)
 			continue
 		}
-		
+
 		ls.AppendHistory(line)
 
 		program, perr := parseString(line)
