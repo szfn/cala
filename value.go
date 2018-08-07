@@ -147,6 +147,19 @@ func max(v ...int) int {
 	return m
 }
 
+func min(v ...int) int {
+	if len(v) == 0 {
+		return 0
+	}
+	m := v[0]
+	for _, x := range v[1:] {
+		if x < m {
+			m = x
+		}
+	}
+	return m
+}
+
 func fmtfloatstr(s string) string {
 	if strings.Index(s, "e") >= 0 || strings.Index(s, "E") >= 0 {
 		return s
@@ -166,11 +179,16 @@ func fmtfloatstr(s string) string {
 		integral = integral[1:]
 	}
 
+	found := false
 	for i := len(frac) - 1; i >= 1; i-- {
 		if frac[i] != '0' {
 			frac = frac[:i+1]
+			found = true
 			break
 		}
+	}
+	if !found {
+		frac = frac[:min(2, len(frac))]
 	}
 
 	newintegral := make([]byte, 0, len(integral)+len(integral)/3)

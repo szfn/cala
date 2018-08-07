@@ -156,6 +156,38 @@ func bitfield(x uint64) string {
 }
 
 var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
+	prefixes := []struct {
+		mul bool
+		f   int
+		p   string
+	}{
+		{false, 1000000000, "G"},
+		{false, 1000000, "M"},
+		{false, 1000, "k"},
+		{true, 1000, "m"},
+		{true, 1000000, "μ"},
+		{true, 1000000000, "n"},
+		{false, 1073741824, "GiB"},
+		{false, 1048576, "MiB"},
+		{false, 1024, "KiB"},
+	}
+
+	prefixprint := func(gt func(mulby int, tgt int) bool, pr func(mylby int, divby int, prefix string)) {
+		for _, p := range prefixes {
+			if p.mul {
+				if gt(p.f, 1) {
+					pr(1, p.f, p.p)
+					break
+				}
+			} else {
+				if gt(1, p.f) {
+					pr(p.f, 1, p.p)
+					break
+				}
+			}
+		}
+	}
+
 	switch argv[0].kind {
 	case IVAL:
 		fmt.Printf("integer\n")
@@ -169,14 +201,51 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 		} else {
 			fmt.Printf("hex = %X", &argv[0].ival)
 		}
+		prefixprint(
+			func(mulby int, tgt int) bool {
+				var x big.Rat
+				x.Mul(argv[0].Rat(0), big.NewRat(int64(mulby), 1))
+				return x.Cmp(big.NewRat(int64(tgt), 1)) >= 0
+			},
+			func(divby, mulby int, prefix string) {
+				var x big.Rat
+				x.Mul(argv[0].Rat(0), big.NewRat(int64(mulby), int64(divby)))
+				fmt.Printf("%s%s\n", fmtfloatstr(x.FloatString(3)), prefix)
+			})
 
 	case DVAL:
 		fmt.Printf("float\n")
-		fmt.Printf("dec = %g\n", argv[0].dval)
+		fmt.Printf("dec = %f\n", argv[0].dval)
+		fmt.Printf("dec = %e\n", argv[0].dval)
 		x := math.Float64bits(argv[0].dval)
 		fmt.Printf("hex = %s\n", hexsplit(fmt.Sprintf("%016X", x)))
 		fmt.Printf("bin =\n")
 		binaryPrint(x)
+		prefixprint(
+			func(mulby int, tgt int) bool {
+				x := argv[0].dval * float64(mulby)
+				return x >= float64(tgt)
+			},
+			func(divby, mulby int, prefix string) {
+				fmt.Printf("%f%s\n", argv[0].dval/float64(divby)*float64(mulby), prefix)
+			})
+
+	case RVAL:
+		fmt.Printf("rational\n")
+		fmt.Printf("dec = %s\n", fmtfloatstr(argv[0].rval.FloatString(1023)))
+		fmt.Printf("dec = %s\n", argv[0].rval.String())
+		prefixprint(
+			func(mulby int, tgt int) bool {
+				var x big.Rat
+				x.Mul(&argv[0].rval, big.NewRat(int64(mulby), 1))
+				return x.Cmp(big.NewRat(int64(tgt), 1)) >= 0
+			},
+			func(divby, mulby int, prefix string) {
+				var x big.Rat
+				x.Mul(&argv[0].rval, big.NewRat(int64(mulby), int64(divby)))
+				fmt.Printf("%s%s\n", fmtfloatstr(x.FloatString(argv[0].prec+3)), prefix)
+
+			})
 
 	case PVAL:
 		fmt.Printf("function\n")
