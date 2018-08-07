@@ -124,11 +124,11 @@ func TestExecOps(t *testing.T) {
 	testExecRat(t, "2.1 - 0.5", "1.6")
 	testExecRat(t, "2.0 * 5.0", "10.0")
 	testExecRat(t, "5/2", "2.5")
-	testExecRat(t, "2.1**4", "19.4")
-	testExecRat(t, "2**-2", "0.3")
-	testExecRat(t, "2.2**-2", "0.2")
-	testExecRat(t, "2**0.5", "1.4")
-	testExecRat(t, "2**(1/2)", "1.4")
+	testExecRat(t, "2.1**4", "19.4481")
+	testExecRat(t, "2**-2", "0.25")
+	testExecRat(t, "2.2**-2", "0.206611570248")
+	testExecRat(t, "2**0.5", "1.414213562373")
+	testExecRat(t, "2**(1/2)", "1.414213562373")
 	testExecInt(t, "10.3 == 11.3", 0)
 	testExecInt(t, "11.3 == 11.3", 1)
 	testExecInt(t, "10.3 != 11.3", 1)
@@ -262,8 +262,8 @@ func TestBuiltin(t *testing.T) {
 	testExecInt(t, "@:r", 0)
 	testExecInt(t, "floor(3.1)", 3)
 	testExecInt(t, "ceil(3.1)", 4)
-	testExecRat(t, "cos(3)", "-1.0")
-	testExecRat(t, "ln(4.3)", "1.5")
+	testExecRat(t, "cos(3)", "-0.9899924966")
+	testExecRat(t, "ln(4.3)", "1.4586150227")
 }
 
 func TestAckermann(t *testing.T) {
@@ -303,4 +303,24 @@ func TestAckermann(t *testing.T) {
 	testExecInt(t, ackermann+"af(3, 2)", 29)
 	testExecInt(t, ackermann+"af(3, 3)", 61)
 	testExecInt(t, ackermann+"af(3, 4)", 125)
+}
+
+func TestFmtFloatStr(t *testing.T) {
+	c := func(in, tgt string) {
+		if out := fmtfloatstr(in); out != tgt {
+			t.Errorf("error formatting %q, expected %q got %q", in, tgt, out)
+		}
+	}
+	c("123", "123")
+	c("3000.450000e+3", "3000.450000e+3")
+	c("", "")
+	c("1.234056", "1.234056")
+	c("1.200000", "1.2")
+	c("12345", "12'345")
+	c("12345.20000", "12'345.2")
+	c("100", "100")
+	c("-100", "-100")
+	c("+100", "+100")
+	c("+1000", "+1'000")
+	c("-.20000", "-.2")
 }

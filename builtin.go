@@ -18,11 +18,15 @@ func intAbs(x int64) int64 {
 var btnAbs = makeFuncValue(1, func(argv []*value, lineno int) *value {
 	switch argv[0].kind {
 	case IVAL:
-		v := newZeroVal(IVAL, argv[0].flavor)
+		v := newZeroVal(IVAL, argv[0].flavor, 0)
 		v.ival.Abs(&argv[0].ival)
 		return v
+	case RVAL:
+		var r big.Rat
+		r.Abs(&argv[0].rval)
+		return newRatval(r, argv[0].prec)
 	case DVAL:
-		return newFloatval(math.Abs(argv[0].dval))
+		return newFloatval(math.Abs(argv[0].dval), argv[0].flavor)
 	}
 	panic(fmt.Errorf("Can not apply abs to non-number value"))
 })
@@ -44,9 +48,9 @@ func makeFloatFuncValue(fn func(float64) float64) *value {
 		case RVAL:
 			var r big.Rat
 			r.SetFloat64(fn(argv[0].Real(lineno)))
-			return newRatval(r)
+			return newRatval(r, max(12, argv[0].prec))
 		default:
-			return newFloatval(fn(argv[0].Real(lineno)))
+			return newFloatval(fn(argv[0].Real(lineno)), argv[0].flavor)
 		}
 	})
 }
@@ -188,7 +192,7 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 		fmt.Printf("not a number\n")
 	}
 
-	return newZeroVal(IVAL, DECFLV)
+	return newZeroVal(IVAL, DECFLV, 0)
 })
 
 var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
@@ -219,6 +223,5 @@ var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
 	fmt.Printf("DATES:\n")
 	fmt.Printf("Date literals are declared with $yyyymmdd for example $20160101 is 2016-01-01, integers can be added to and subtracted from dates\n")
 
-	//TODO: describe how dates work
-	return newZeroVal(IVAL, DECFLV)
+	return newZeroVal(IVAL, DECFLV, 0)
 })

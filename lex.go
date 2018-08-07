@@ -135,6 +135,8 @@ func lxReal(lx *lexer) lexerStateFn {
 
 		if unicode.IsDigit(c) {
 			lx.acc = append(lx.acc, c)
+		} else if c == '\'' {
+			// ignored
 		} else if c == '.' {
 			lx.acc = append(lx.acc, '.')
 			return lxRealFrac

@@ -159,3 +159,21 @@ func TestAtSyntax(t *testing.T) {
 		"@:p",
 		"BodyNode<[DpyNode<toggleProg>]>")
 }
+
+func TestPrecision(t *testing.T) {
+	c := func(s string, tgt int) {
+		if out := strprec(s); out != tgt {
+			t.Errorf("bad precision for %q, expected %d got %d", s, tgt, out)
+		}
+	}
+	c("1", 0)
+	c("12.", 0)
+	c("12.1", 1)
+	c("12.12301", 5)
+	c(".23", 2)
+	c("12.12301e5", 5)
+	c(".23e5", 2)
+	c("12.12301E5", 5)
+	c(".23E5", 2)
+	c("", 0)
+}

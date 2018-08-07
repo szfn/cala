@@ -202,7 +202,7 @@ func (n *SetOpNode) Exec(stack []CallFrame) *value {
 }
 
 func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
-	vv = newZeroVal(IVAL, DECFLV)
+	vv = newZeroVal(IVAL, DECFLV, 0)
 	for {
 		gv := n.guard.Exec(stack)
 		if !gv.Bool(n.guard.Line()) {
@@ -214,7 +214,7 @@ func (n *WhileNode) Exec(stack []CallFrame) (vv *value) {
 }
 
 func (n *ForNode) Exec(stack []CallFrame) (vv *value) {
-	vv = newZeroVal(IVAL, DECFLV)
+	vv = newZeroVal(IVAL, DECFLV, 0)
 
 	n.initExpr.Exec(stack)
 
@@ -240,12 +240,12 @@ func (n *IfNode) Exec(stack []CallFrame) *value {
 			return n.elseBody.Exec(stack)
 		}
 	}
-	return newZeroVal(IVAL, DECFLV)
+	return newZeroVal(IVAL, DECFLV, 0)
 }
 
 func (n *FnDefNode) Exec(stack []CallFrame) *value {
 	frame := stack[len(stack)-1]
-	vv := newZeroVal(PVAL, DECFLV)
+	vv := newZeroVal(PVAL, DECFLV, 0)
 	vv.nval = n
 	frame.vars[n.name] = vv
 	return vv
@@ -259,11 +259,11 @@ func (n *DpyNode) Exec(callStack []CallFrame) *value {
 	switch {
 	case n.toggleProg:
 		programmerMode = true
-		return newZeroVal(IVAL, DECFLV)
+		return newZeroVal(IVAL, DECFLV, 0)
 
 	case n.changeComma:
 		CommaMode = n.commaMode
-		return newZeroVal(IVAL, DECFLV)
+		return newZeroVal(IVAL, DECFLV, 0)
 
 	default:
 		v := n.expr.Exec(callStack)
@@ -273,7 +273,7 @@ func (n *DpyNode) Exec(callStack []CallFrame) *value {
 
 func (n *ExitNode) Exec(callStack []CallFrame) *value {
 	exitRequested = true
-	return newZeroVal(IVAL, DECFLV)
+	return newZeroVal(IVAL, DECFLV, 0)
 }
 
 func (vv *value) Bool(lineno int) bool {

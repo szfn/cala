@@ -30,7 +30,7 @@ func TestLexerOk(t *testing.T) {
 # This is a comment, it should be ignored
 0123	0x1aAf5 0 45
 .345  	 0.345 3.345 	32.3126e2  32.3126e-2 32.3126e+2
-  _something something som1231
+  _something something som1231 12'345.2 12'345
 `
 
 	expected := []token{
@@ -49,6 +49,9 @@ func TestLexerOk(t *testing.T) {
 		{SYMTOK, "_something", 5},
 		{SYMTOK, "something", 5},
 		{SYMTOK, "som1231", 5},
+
+		{REALTOK, "12345.2", 5},
+		{INTTOK, "12345", 5},
 
 		{EOFTOK, "", 6},
 	}

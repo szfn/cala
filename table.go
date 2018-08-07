@@ -127,15 +127,15 @@ func badtype(name string, lineno int) error {
 var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL, a1.flavor)
+		v := newZeroVal(IVAL, a1.flavor, 0)
 		v.ival.Add(a1.Int(lineno), a2.Int(lineno))
 		return v
 	case DVAL:
-		return newFloatval(a1.Real(lineno) + a2.Real(lineno))
+		return newFloatvalDerived(a1.Real(lineno)+a2.Real(lineno), a1, a2)
 	case RVAL:
-		v := newZeroVal(RVAL, a1.flavor)
-		v.rval.Add(a1.Rat(lineno), a2.Rat(lineno))
-		return v
+		var r big.Rat
+		r.Add(a1.Rat(lineno), a2.Rat(lineno))
+		return newRatval(r, max(a1.prec, a2.prec))
 	case DTVAL:
 		a1, a2 = sortDtval(a1, a2)
 		return newDateval(a1.dtval.AddDate(0, 0, int(a2.Int(lineno).Int64())))
@@ -147,15 +147,15 @@ var ADDOPTOK = TOp2("+", 2, func(a1, a2 *value, kind valueKind, lineno int) *val
 var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL, a1.flavor)
+		v := newZeroVal(IVAL, a1.flavor, 0)
 		v.ival.Sub(a1.Int(lineno), a2.Int(lineno))
 		return v
 	case DVAL:
-		return newFloatval(a1.Real(lineno) - a2.Real(lineno))
+		return newFloatvalDerived(a1.Real(lineno)-a2.Real(lineno), a1, a2)
 	case RVAL:
-		v := newZeroVal(RVAL, a1.flavor)
-		v.rval.Sub(a1.Rat(lineno), a2.Rat(lineno))
-		return v
+		var r big.Rat
+		r.Sub(a1.Rat(lineno), a2.Rat(lineno))
+		return newRatval(r, max(a1.prec, a2.prec))
 	case DTVAL:
 		a1, a2 = sortDtval(a1, a2)
 		return newDateval(a1.dtval.AddDate(0, 0, -int(a2.Int(lineno).Int64())))
@@ -166,15 +166,15 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 	func(a1 *value, lineno int) *value {
 		switch a1.kind {
 		case IVAL:
-			v := newZeroVal(IVAL, a1.flavor)
+			v := newZeroVal(IVAL, a1.flavor, 0)
 			v.ival.Neg(&a1.ival)
 			return v
 		case DVAL:
-			return newFloatval(-a1.dval)
+			return newFloatval(-a1.dval, a1.flavor)
 		case RVAL:
-			v := newZeroVal(RVAL, a1.flavor)
-			v.rval.Neg(&a1.rval)
-			return v
+			var r big.Rat
+			r.Neg(&a1.rval)
+			return newRatval(r, a1.prec)
 		default:
 			panic(badtype("-", lineno))
 		}
@@ -183,15 +183,15 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 var MULOPTOK = TOp2("*", 3, func(a1, a2 *value, kind valueKind, lineno int) *value {
 	switch kind {
 	case IVAL:
-		v := newZeroVal(IVAL, a1.flavor)
+		v := newZeroVal(IVAL, a1.flavor, 0)
 		v.ival.Mul(a1.Int(lineno), a2.Int(lineno))
 		return v
 	case DVAL:
-		return newFloatval(a1.Real(lineno) * a2.Real(lineno))
+		return newFloatvalDerived(a1.Real(lineno)*a2.Real(lineno), a1, a2)
 	case RVAL:
-		v := newZeroVal(RVAL, a1.flavor)
-		v.rval.Mul(a1.Rat(lineno), a2.Rat(lineno))
-		return v
+		var r big.Rat
+		r.Mul(a1.Rat(lineno), a2.Rat(lineno))
+		return newRatval(r, max(a1.prec, a2.prec))
 	default:
 		panic(badtype("*", lineno))
 	}
@@ -202,18 +202,20 @@ var DIVOPTOK = TOp2("/", 4, func(a1, a2 *value, kind valueKind, lineno int) *val
 	case undefinedComma:
 		panic("Can not use division in undefined mode, use '@:f' for floating point or '@:r' for rational")
 	case floatComma:
-		return newFloatval(a1.Real(lineno) / a2.Real(lineno))
-	case rationalComma:
-		r := newZeroVal(RVAL, a1.flavor)
-		r.rval.Quo(a1.Rat(lineno), a2.Rat(lineno))
+		r := newFloatvalDerived(a1.Real(lineno)/a2.Real(lineno), a1, a2)
+		r.prec = max(r.prec+4, 12)
 		return r
+	case rationalComma:
+		var r big.Rat
+		r.Quo(a1.Rat(lineno), a2.Rat(lineno))
+		return newRatval(r, max(a1.prec, a2.prec)+1)
 	default:
 		panic("unknown mode")
 	}
 })
 
 var MODOPTOK = TOp2("%", 4, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL, a1.flavor)
+	v := newZeroVal(IVAL, a1.flavor, 0)
 	v.ival.Mod(a1.Int(lineno), a2.Int(lineno))
 	return v
 })
@@ -226,7 +228,7 @@ var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *va
 			case undefinedComma:
 				panic("Can not use division in undefined mode, use '@:f' for floating point or '@:r' for rational")
 			case floatComma:
-				return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+				return newFloatvalDerived(math.Pow(a1.Real(lineno), a2.Real(lineno)), a1, a2)
 			case rationalComma:
 				return rationalPow(a2, a2, lineno)
 			default:
@@ -234,12 +236,12 @@ var POWOPTOK = TOp2("**", 4, func(a1, a2 *value, kind valueKind, lineno int) *va
 			}
 
 		} else {
-			v := newZeroVal(IVAL, a1.flavor)
+			v := newZeroVal(IVAL, a1.flavor, 0)
 			v.ival.Exp(a1.Int(lineno), a2.Int(lineno), nil)
 			return v
 		}
 	case DVAL:
-		return newFloatval(math.Pow(a1.Real(lineno), a2.Real(lineno)))
+		return newFloatvalDerived(math.Pow(a1.Real(lineno), a2.Real(lineno)), a1, a2)
 	case RVAL:
 		return rationalPow(a1, a2, lineno)
 	default:
@@ -252,9 +254,9 @@ func rationalPow(a1, a2 *value, lineno int) *value {
 	if !expfr.IsInt() {
 		base, _ := a1.Rat(lineno).Float64()
 		exp, _ := a2.Rat(lineno).Float64()
-		r := newZeroVal(RVAL, a1.flavor)
-		r.rval.SetFloat64(math.Pow(base, exp))
-		return r
+		var r big.Rat
+		r.SetFloat64(math.Pow(base, exp))
+		return newRatval(r, max(12, a1.prec, a2.prec))
 	}
 
 	exp := expfr.Num()
@@ -271,13 +273,19 @@ func rationalPow(a1, a2 *value, lineno int) *value {
 	numerator = numerator.Exp(numerator, exp, nil)
 	denominator = denominator.Exp(denominator, exp, nil)
 
-	r := newZeroVal(RVAL, a1.flavor)
-	if swap {
-		r.rval.SetFrac(denominator, numerator)
-	} else {
-		r.rval.SetFrac(numerator, denominator)
+	prec := max(a1.prec, a2.prec)
+
+	if !base.IsInt() || swap {
+		prec = max(prec, 12)
 	}
-	return r
+
+	var r big.Rat
+	if swap {
+		r.SetFrac(denominator, numerator)
+	} else {
+		r.SetFrac(numerator, denominator)
+	}
+	return newRatval(r, prec)
 }
 
 var OROPTOK = TOp2("||", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
@@ -285,7 +293,7 @@ var OROPTOK = TOp2("||", 1, func(a1, a2 *value, kind valueKind, lineno int) *val
 })
 
 var BWOROPTOK = TOp2("|", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL, a1.flavor)
+	v := newZeroVal(IVAL, a1.flavor, 0)
 	v.ival.Or(a1.Int(lineno), a2.Int(lineno))
 	return v
 })
@@ -295,7 +303,7 @@ var ANDOPTOK = TOp2("&&", 1, func(a1, a2 *value, kind valueKind, lineno int) *va
 })
 
 var BWANDOPTOK = TOp2("&", 1, func(a1, a2 *value, kind valueKind, lineno int) *value {
-	v := newZeroVal(IVAL, a1.flavor)
+	v := newZeroVal(IVAL, a1.flavor, 0)
 	v.ival.And(a1.Int(lineno), a2.Int(lineno))
 	return v
 })

@@ -482,17 +482,36 @@ func parseReal(s string, lineno int) AstNode {
 		if err != nil {
 			panic(fmt.Errorf("Syntax error: wrong number format at line %d: %s", lineno, err.Error()))
 		}
-		return NewConstNode(newFloatval(v), lineno)
+		flavor := DECFLV
+		if strings.Index(s, "e") >= 0 || strings.Index(s, "E") >= 0 {
+			flavor = EXPFLV
+		}
+		return NewConstNode(newFloatval(v, flavor), lineno)
 	case rationalComma:
 		var v big.Rat
 		_, ok := v.SetString(s)
 		if !ok {
 			panic(fmt.Errorf("Syntax error: wrong number format at line %d", lineno))
 		}
-		return NewConstNode(newRatval(v), lineno)
+		return NewConstNode(newRatval(v, max(1, strprec(s))), lineno)
 	default:
 		panic("unexpected")
 	}
+}
+
+// if s is a string representing a floating point number it returns the
+// number of digits after the comma.
+func strprec(s string) int {
+	dot := strings.Index(s, ".")
+	if dot < 0 {
+		return 0
+	}
+	for i := dot + 1; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return i - dot - 1
+		}
+	}
+	return len(s) - dot - 1
 }
 
 // Parses an integer

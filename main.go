@@ -119,7 +119,7 @@ func main() {
 				if vret != nil {
 					*autovar = *vret
 				} else {
-					*autovar = *newZeroVal(IVAL, DECFLV)
+					*autovar = *newZeroVal(IVAL, DECFLV, 0)
 				}
 			}
 		}
