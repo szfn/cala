@@ -12,7 +12,7 @@ import (
 var programmerMode = false
 var exitRequested = false
 
-var CommaMode commaMode
+var CommaMode commaMode = rationalComma
 
 type commaMode uint8
 
@@ -68,10 +68,31 @@ func main() {
 	varct := 0
 
 	for {
-		line, err := ls.Prompt("")
+		var prompt [4]byte
+		
+		prompt[0] = 'p'
+		
+		if programmerMode {
+			prompt[0] = 'P'
+		}
+		
+		switch CommaMode {
+		case undefinedComma:
+			prompt[1] = '?'
+		case floatComma:
+			prompt[1] = 'f'
+		case rationalComma:
+			prompt[1] = 'r'
+		}
+		
+		prompt[2] = '>'
+		prompt[3] = ' '
+		
+		
+		line, err := ls.Prompt(string(prompt[:]))
 		if err != nil {
 			if err != io.EOF {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
+				fmt.Fprintf(os.Stderr, "%v\n\n", err)
 			}
 			break
 		}
@@ -85,7 +106,7 @@ func main() {
 
 		program, perr := parseString(line)
 		if perr != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", perr)
+			fmt.Fprintf(os.Stderr, "%v\n\n", perr)
 			continue
 		}
 
@@ -93,7 +114,7 @@ func main() {
 		callStack = callStack[:1]
 
 		if eerr != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", eerr)
+			fmt.Fprintf(os.Stderr, "%v\n\n", eerr)
 		} else {
 			autonumberVar := lookup(callStack, "_autonumber", false, -1)
 			prn := func(varname string) bool {
