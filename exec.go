@@ -71,6 +71,7 @@ func NewCallStack() []CallFrame {
 				"tan":         btnTan,
 				"tanh":        btnTanh,
 				"dpy":         btnDpy,
+				"print":       btnPrint,
 				"help":        btnHelp,
 				"_autonumber": &value{kind: IVAL, ival: big.Int{}},
 			},

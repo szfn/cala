@@ -264,6 +264,11 @@ var btnDpy = makeFuncValue(1, func(argv []*value, lineno int) *value {
 	return newZeroVal(IVAL, DECFLV, 0)
 })
 
+var btnPrint = makeFuncValue(1, func(argv []*value, lineno int) *value {
+	fmt.Printf("= %s\n\n", argv[0])
+	return newZeroVal(IVAL, DECFLV, 0)
+})
+
 var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
 	fmt.Printf("Type any expression to calculate the return value\n")
 	fmt.Printf("\n")
@@ -282,7 +287,7 @@ var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
 	fmt.Printf("cos\tcosh\tfloor\tceil\n")
 	fmt.Printf("ln\tlog10\tlog2\tsin\n")
 	fmt.Printf("sin\tsinh\tsqrt\ttan\n")
-	fmt.Printf("tanh\tdpy\n")
+	fmt.Printf("tanh\tdpy\tprint\n")
 	fmt.Printf("\n")
 	fmt.Printf("@ expr\t\tDetailed variable view, alias for dpy(expr)\n")
 	fmt.Printf("@:p\t\tToggles programmer mode (in programmer mode results are shown in decimal and hexadecimal\n")

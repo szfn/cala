@@ -25,6 +25,13 @@ const (
 func main() {
 	interactive := 1 /* 0: no, 1: maybe, 2: definitely */
 	callStack := NewCallStack()
+
+	initfile := os.ExpandEnv("$HOME/.config/cala/rc")
+	_, err := os.Stat(initfile)
+	if err == nil {
+		executeFile(callStack, initfile)
+	}
+
 	for _, arg := range os.Args[1:] {
 		if arg == "-i" {
 			interactive = 2
@@ -35,27 +42,7 @@ func main() {
 			interactive = 0
 		}
 
-		file, err := os.Open(arg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not read %s: %v\n", arg, err)
-			continue
-		}
-		defer file.Close()
-
-		program, perr := parse(lex(file))
-		if perr != nil {
-			fmt.Fprintf(os.Stderr, "Could not parse %s:%v\n", arg, perr)
-			continue
-		}
-
-		vret, eerr := execWithCallStack(program, callStack)
-		if eerr != nil {
-			fmt.Fprintf(os.Stderr, "Could not execute %s: %v\n", arg, eerr)
-			continue
-		}
-		fmt.Printf("= %s\n\n", vret)
-
-		callStack = callStack[:1]
+		executeFile(callStack, arg)
 	}
 
 	if interactive <= 0 {
@@ -69,13 +56,13 @@ func main() {
 
 	for {
 		var prompt [4]byte
-		
+
 		prompt[0] = 'p'
-		
+
 		if programmerMode {
 			prompt[0] = 'P'
 		}
-		
+
 		switch CommaMode {
 		case undefinedComma:
 			prompt[1] = '?'
@@ -84,11 +71,10 @@ func main() {
 		case rationalComma:
 			prompt[1] = 'r'
 		}
-		
+
 		prompt[2] = '>'
 		prompt[3] = ' '
-		
-		
+
 		line, err := ls.Prompt(string(prompt[:]))
 		if err != nil {
 			if err != io.EOF {
@@ -164,4 +150,28 @@ func isVarLookup(program AstNode) (bool, string) {
 		return false, ""
 	}
 	return true, vn.name
+}
+
+func executeFile(callStack []CallFrame, arg string) {
+	file, err := os.Open(arg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not read %s: %v\n", arg, err)
+		return
+	}
+	defer file.Close()
+
+	program, perr := parse(lex(file))
+	if perr != nil {
+		fmt.Fprintf(os.Stderr, "Could not parse %s:%v\n", arg, perr)
+		return
+	}
+
+	vret, eerr := execWithCallStack(program, callStack)
+	if eerr != nil {
+		fmt.Fprintf(os.Stderr, "Could not execute %s: %v\n", arg, eerr)
+		return
+	}
+	if vret.kind != PVAL {
+		fmt.Printf("= %s\n\n", vret)
+	}
 }
