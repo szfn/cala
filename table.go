@@ -157,6 +157,11 @@ var SUBOPTOK = TOp12("-", 2, func(a1, a2 *value, kind valueKind, lineno int) *va
 		r.Sub(a1.Rat(lineno), a2.Rat(lineno))
 		return newRatval(r, max(a1.prec, a2.prec))
 	case DTVAL:
+		if a1.kind == DTVAL && a2.kind == DTVAL {
+			v := newZeroVal(IVAL, DECFLV, 0)
+			v.ival.SetInt64(int64(a1.dtval.Sub(*a2.dtval).Hours()) / 24)
+			return v
+		}
 		a1, a2 = sortDtval(a1, a2)
 		return newDateval(a1.dtval.AddDate(0, 0, -int(a2.Int(lineno).Int64())))
 	default:

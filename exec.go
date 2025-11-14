@@ -291,7 +291,7 @@ func (vv *value) Bool(lineno int) bool {
 
 func (vv *value) Int(lineno int) *big.Int {
 	if vv.kind != IVAL {
-		panic(fmt.Errorf("Can not use non-integer value as integer at line %d\n", lineno))
+		panic(fmt.Errorf("Can not use non-integer value as integer at line %d", lineno))
 	}
 	return &vv.ival
 }

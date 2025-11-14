@@ -295,7 +295,7 @@ var btnHelp = makeFuncValue(0, func(argv []*value, lineno int) *value {
 	fmt.Printf("@:r\t\tToggles rational mode (numbers with a comma and division produce exact results)\n")
 	fmt.Printf("\n")
 	fmt.Printf("DATES:\n")
-	fmt.Printf("Date literals are declared with $yyyymmdd for example $20160101 is 2016-01-01, integers can be added to and subtracted from dates\n")
+	fmt.Printf("Date literals are declared with $yyyymmdd for example $20160101 is 2016-01-01, integers can be added to and subtracted from dates.\nTwo date values can also be subtracted.\n")
 
 	return newZeroVal(IVAL, DECFLV, 0)
 })
