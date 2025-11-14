@@ -405,6 +405,8 @@ func parseExpressionNoinfix(ts *tokenStream) AstNode {
 		return parseInt(tok.val[1:], 8, tok.lineno)
 	case DATETOK:
 		return parseDate(tok.val, tok.lineno)
+	case TIMETOK:
+		return parseTime(tok.val, tok.lineno)
 
 	/* variables, function calls, postfix operators */
 	case SYMTOK:
@@ -538,6 +540,21 @@ func parseDate(s string, lineno int) AstNode {
 		panic(fmt.Errorf("Syntax error: wrong date format at line: %d: %v", lineno, err.Error()))
 	}
 	return NewDateNode(t, lineno)
+}
+
+// Parses a time
+func parseTime(s string, lineno int) AstNode {
+	v := strings.Split(s, ":")
+	r := int64(0)
+	for _, x := range v {
+		xv, err := strconv.Atoi(x)
+		if err != nil {
+			panic(fmt.Errorf("Syntax error: wrong time format at line: %d: %v", lineno, err.Error()))
+		}
+		r *= 60
+		r += int64(xv)
+	}
+	return NewTimeNode(r, lineno)
 }
 
 // Extracts a token from the stream, checks that it's the given type and returns its value

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 )
 
@@ -107,6 +108,12 @@ func NewDateNode(t time.Time, lineno int) *ConstNode {
 	r.v.kind = DTVAL
 	r.v.dtval = &t
 	r.lineno = lineno
+	return r
+}
+
+func NewTimeNode(x int64, lineno int) *ConstNode {
+	r := &ConstNode{}
+	r.v = *newIntval(*big.NewInt(x), TIMEFLV)
 	return r
 }
 

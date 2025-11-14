@@ -140,6 +140,9 @@ func lxReal(lx *lexer) lexerStateFn {
 		} else if c == '.' {
 			lx.acc = append(lx.acc, '.')
 			return lxRealFrac
+		} else if c == ':' {
+			lx.acc = append(lx.acc, ':')
+			return lxTime1
 		} else if (c == 'e') || (c == 'E') {
 			lx.acc = append(lx.acc, c)
 			return lxRealExp
@@ -217,6 +220,10 @@ func lxNumber(lx *lexer) lexerStateFn {
 		lx.acc = append(lx.acc, c)
 		return lxRealFrac
 
+	case ':':
+		lx.acc = append(lx.acc, c)
+		return lxTime1
+
 	default: // it was just a zero
 		lx.emit(INTTOK, string(lx.acc))
 		return toBase1(lx, c, false)
@@ -275,8 +282,41 @@ func lxOct(lx *lexer) lexerStateFn {
 		switch c {
 		case '0', '1', '2', '3', '4', '5', '6', '7':
 			lx.acc = append(lx.acc, c)
+		case ':':
+			lx.acc = append(lx.acc, c)
+			return lxTime1
 		default:
 			lx.emit(OCTTOK, string(lx.acc))
+			return toBase1(lx, c, false)
+		}
+	}
+	panic(fmt.Errorf("Unreachable"))
+}
+
+// Reads the second part of a time expression
+func lxTime1(lx *lexer) lexerStateFn {
+	return lxTimeIntl(lx, true)
+}
+
+// Reads the third part of a time expression
+func lxTime2(lx *lexer) lexerStateFn {
+	return lxTimeIntl(lx, false)
+}
+
+func lxTimeIntl(lx *lexer, canReadMore bool) lexerStateFn {
+	for {
+		c, _, err := lx.input.ReadRune()
+		if lx.lerror(err) {
+			return nil
+		}
+
+		if unicode.IsDigit(c) {
+			lx.acc = append(lx.acc, c)
+		} else if c == ':' && canReadMore {
+			lx.acc = append(lx.acc, c)
+			return lxTime2
+		} else {
+			lx.emit(TIMETOK, string(lx.acc))
 			return toBase1(lx, c, false)
 		}
 	}

@@ -105,6 +105,7 @@ var OCTTOK = T("an octal number")
 var KWDTOK = T("a keyword")
 var SYMTOK = T("any symbol")
 var DATETOK = T("a date constant")
+var TIMETOK = T("a time constant")
 
 var PAROPTOK = T("(")
 var PARCLTOK = T(")")

@@ -38,6 +38,7 @@ const (
 	OCTFLV
 	HEXFLV
 	EXPFLV
+	TIMEFLV
 )
 
 func newZeroVal(kind valueKind, flavor valueFlavor, prec int) *value {
@@ -112,6 +113,19 @@ func (vv *value) String() string {
 			}
 		case OCTFLV:
 			return fmt.Sprintf("%#o", &vv.ival)
+		case TIMEFLV:
+			var h, m, s, t big.Int
+			h.Div(&vv.ival, big.NewInt(60*60))
+			t.Mul(&h, big.NewInt(60*60))
+			m.Sub(&vv.ival, &t)
+			s.Set(&m)
+			m.Div(&m, big.NewInt(60))
+			t.Mul(&m, big.NewInt(60))
+			s.Sub(&s, &t)
+			if h.Cmp(big.NewInt(0)) > 0 {
+				return fmt.Sprintf("%02d:%02d:%02d", &h, &m, &s)
+			}
+			return fmt.Sprintf("%02d:%02d", &m, &s)
 		default:
 			if programmerMode {
 

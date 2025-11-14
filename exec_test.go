@@ -324,3 +324,21 @@ func TestFmtFloatStr(t *testing.T) {
 	c("+1000", "+1'000")
 	c("-.20000", "-.2")
 }
+
+func testExecTime(t *testing.T, s string, tgt string) {
+	v := execString(t, s)
+	if v.kind != IVAL {
+		fmt.Printf("Program:\n%s\n", s)
+		t.Fatalf("Output value not integer: %v\n", v)
+	}
+	if v.String() != tgt {
+		fmt.Printf("Program:\n%s\n", s)
+		t.Fatalf("Output value mismatch %v (expected: %s)\n", v, tgt)
+	}
+}
+
+func TestExecTime(t *testing.T) {
+	testExecTime(t, "1:30 + 1:30", "03:00")
+	testExecTime(t, "1:0:0 + 1:30", "01:01:30")
+	testExecTime(t, "1:0:0 - 1:00", "59:00")
+}

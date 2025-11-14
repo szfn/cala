@@ -6,6 +6,7 @@ import (
 )
 
 func tokEqual(t *testing.T, tt []token, te []token) {
+	t.Helper()
 	if len(tt) != len(te) {
 		t.Fatalf("Token number mismatch:\ngot:%v\nexp:%v\n", tt, te)
 	}
@@ -171,4 +172,15 @@ func TestDateToks(t *testing.T) {
 
 	tokens := lexAll(strings.NewReader(s))
 	tokEqual(t, tokens, expected)
+}
+
+func TestTimeToks(t *testing.T) {
+	f := func(s string, tok token) {
+		t.Helper()
+		tokEqual(t, lexAll(strings.NewReader(s)), []token{tok, {EOFTOK, "", 1}})
+	}
+
+	f("0:1", token{TIMETOK, "0:1", 1})
+	f("00:01", token{TIMETOK, "00:01", 1})
+	f("1:1:1", token{TIMETOK, "1:1:1", 1})
 }
